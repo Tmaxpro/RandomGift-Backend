@@ -182,6 +182,9 @@ def get_jwt():
 def token_required(f):
     """
     Décorateur pour protéger les routes avec authentification JWT.
+    
+    Usage: Ajouter le header "Authorization: Bearer <access_token>"
+    où access_token est obtenu via POST /auth/login
     """
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -192,7 +195,8 @@ def token_required(f):
             if payload.get('type') != 'access':
                 return jsonify({
                     'success': False,
-                    'error': 'A valid access token is required'
+                    'error': 'Un access token valide est requis',
+                    'hint': 'Utilisez le token retourné par POST /auth/login'
                 }), 401
             
             # Ajouter les infos utilisateur à g
@@ -204,17 +208,30 @@ def token_required(f):
             g.admin_username = payload.get('username')
             g.jwt_payload = payload
             
-            # Ajouter aussi à request pour rétrocompatibilité
-            #request.current_user = payload
-            
             return f(*args, **kwargs)
         
         except Exception as exc:
+            error_message = str(exc)
             current_app.logger.debug('JWT verification failed: %s', exc)
-            return jsonify({
-                'success': False,
-                'error': 'Authentication required',
-                'reason': str(exc)
-            }), 401
+            
+            # Messages d'erreur plus clairs
+            if 'Missing Authorization Header' in error_message:
+                return jsonify({
+                    'success': False,
+                    'error': 'Header Authorization manquant',
+                    'hint': 'Ajoutez le header: Authorization: Bearer <access_token>'
+                }), 401
+            elif 'expired' in error_message.lower():
+                return jsonify({
+                    'success': False,
+                    'error': 'Token expiré',
+                    'hint': 'Reconnectez-vous via POST /auth/login ou utilisez POST /auth/refresh'
+                }), 401
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Authentification requise',
+                    'reason': error_message
+                }), 401
     
     return decorated
