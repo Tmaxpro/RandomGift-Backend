@@ -5,6 +5,10 @@ Utilise SQLite pour la persistance des données.
 import os
 from flask import Flask, jsonify
 from flask_cors import CORS
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement
+load_dotenv()
 
 # Importer la base de données
 from storage.database import db
