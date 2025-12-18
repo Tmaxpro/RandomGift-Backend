@@ -13,7 +13,7 @@ gifts_bp = Blueprint('gifts', __name__)
 
 @gifts_bp.route('/gifts', methods=['POST'])
 @token_required
-def add_gift(current_user):
+def add_gift():
     """
     Ajoute un cadeau unique.
     
@@ -61,7 +61,7 @@ def add_gift(current_user):
 
 @gifts_bp.route('/gifts/bulk', methods=['POST'])
 @token_required
-def add_gifts_bulk(current_user):
+def add_gifts_bulk():
     """
     Ajoute plusieurs cadeaux en une seule opération via fichier CSV/Excel.
     
@@ -176,7 +176,7 @@ def get_gifts():
 
 @gifts_bp.route('/gifts/<int:gift>', methods=['DELETE'])
 @token_required
-def delete_gift(current_user, gift):
+def delete_gift(gift):
     """
     Supprime un cadeau et son association éventuelle.
     

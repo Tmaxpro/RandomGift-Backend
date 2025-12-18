@@ -13,7 +13,7 @@ participants_bp = Blueprint('participants', __name__)
 
 @participants_bp.route('/participants', methods=['POST'])
 @token_required
-def add_participant(current_user):
+def add_participant():
     """
     Ajoute un participant unique.
     
@@ -61,7 +61,7 @@ def add_participant(current_user):
 
 @participants_bp.route('/participants/bulk', methods=['POST'])
 @token_required
-def add_participants_bulk(current_user):
+def add_participants_bulk():
     """
     Ajoute plusieurs participants en une seule opération via fichier CSV/Excel.
     
@@ -173,7 +173,7 @@ def get_participants():
 
 @participants_bp.route('/participants/<string:participant>', methods=['DELETE'])
 @token_required
-def delete_participant(current_user, participant):
+def delete_participant(participant):
     """
     Supprime un participant et son association éventuelle.
     
