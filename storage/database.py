@@ -40,6 +40,27 @@ class Admin(db.Model):
         }
 
 
+class TokenBlocklist(db.Model):
+    """
+    Modèle pour stocker les tokens JWT révoqués.
+    """
+    __tablename__ = 'token_blocklist'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(36), unique=True, nullable=False, index=True)  # JWT ID
+    token_type = db.Column(db.String(10), nullable=False)  # 'access' ou 'refresh'
+    admin_id = db.Column(db.Integer, db.ForeignKey('admins.id', ondelete='CASCADE'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    @staticmethod
+    def is_blocked(jti):
+        """Vérifie si un token est révoqué."""
+        return TokenBlocklist.query.filter_by(jti=jti).first() is not None
+    
+    def __repr__(self):
+        return f"<TokenBlocklist {self.jti}>"
+
+
 class Participant(db.Model):
     """
     Modèle pour stocker les participants.

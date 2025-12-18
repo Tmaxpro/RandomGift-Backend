@@ -35,6 +35,10 @@ def create_app():
     # Configuration de la clé secrète pour JWT
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     
+    # Configuration JWT
+    app.config['JWT_ALGORITHM'] = os.environ.get('JWT_ALGORITHM', 'HS256')
+    app.config['JWT_EXP_DELTA_SECONDS'] = int(os.environ.get('JWT_EXP_DELTA_SECONDS', 3600))  # 1 heure par défaut
+    
     # Configuration de la base de données SQLite
     basedir = os.path.abspath(os.path.dirname(__file__))
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "associations.db")}'

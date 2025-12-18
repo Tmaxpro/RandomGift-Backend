@@ -2,59 +2,181 @@
 Utilitaires pour l'authentification JWT.
 """
 import jwt
+import uuid
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, g
 
 
-def generate_token(user_id, username):
+def create_access_token(identity, additional_claims=None, expires_delta=None):
     """
-    Génère un token JWT pour un utilisateur.
+    Crée un token JWT d'accès.
     
     Args:
-        user_id (int): ID de l'utilisateur
-        username (str): Nom d'utilisateur
+        identity: ID de l'utilisateur
+        additional_claims (dict): Claims additionnels (ex: username)
+        expires_delta (timedelta): Durée de validité personnalisée
         
     Returns:
-        str: Token JWT
+        str: Token JWT d'accès
     """
+    algo = current_app.config.get('JWT_ALGORITHM', 'HS256')
+    now = datetime.utcnow()
+    
+    if expires_delta:
+        exp = now + expires_delta
+    else:
+        exp_seconds = int(current_app.config.get('JWT_EXP_DELTA_SECONDS', 3600))
+        exp = now + timedelta(seconds=exp_seconds)
+    
+    jti = str(uuid.uuid4())
+    
     payload = {
-        'user_id': user_id,
-        'username': username,
-        'exp': datetime.utcnow() + timedelta(days=1),  # Token valide 24h
-        'iat': datetime.utcnow()
+        'sub': str(identity),
+        'iat': now,
+        'exp': exp,
+        'jti': jti,
+        'type': 'access'
     }
     
-    token = jwt.encode(
-        payload,
-        current_app.config['SECRET_KEY'],
-        algorithm='HS256'
-    )
+    if additional_claims:
+        payload.update(additional_claims)
+    
+    token = jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm=algo)
+    
+    # PyJWT >= 2.0 retourne une string
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
+    
+    return token
+
+
+def create_refresh_token(identity, expires_delta=None):
+    """
+    Crée un token JWT de rafraîchissement.
+    
+    Args:
+        identity: ID de l'utilisateur
+        expires_delta (timedelta): Durée de validité personnalisée (défaut: 7 jours)
+        
+    Returns:
+        str: Token JWT de rafraîchissement
+    """
+    algo = current_app.config.get('JWT_ALGORITHM', 'HS256')
+    now = datetime.utcnow()
+    
+    if expires_delta:
+        exp = now + expires_delta
+    else:
+        exp = now + timedelta(days=7)
+    
+    jti = str(uuid.uuid4())
+    
+    payload = {
+        'sub': str(identity),
+        'iat': now,
+        'exp': exp,
+        'jti': jti,
+        'type': 'refresh'
+    }
+    
+    token = jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm=algo)
+    
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
     
     return token
 
 
 def decode_token(token):
     """
-    Décode un token JWT.
+    Décode et valide un token JWT.
     
     Args:
         token (str): Token JWT
         
     Returns:
-        dict: Payload du token ou None si invalide
+        dict: Payload du token
+        
+    Raises:
+        jwt.InvalidTokenError: Si le token est invalide ou révoqué
     """
+    from storage.database import TokenBlocklist
+    
+    algo = current_app.config.get('JWT_ALGORITHM', 'HS256')
+    payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=[algo])
+    
+    # Vérifier si le token est révoqué
+    jti = payload.get('jti')
+    if jti and TokenBlocklist.is_blocked(jti):
+        raise jwt.InvalidTokenError('Token has been revoked')
+    
+    return payload
+
+
+def verify_jwt_in_request():
+    """
+    Vérifie le JWT dans le header Authorization de la requête.
+    
+    Returns:
+        dict: Payload du token
+        
+    Raises:
+        Exception: Si le token est manquant ou invalide
+    """
+    auth_header = request.headers.get('Authorization', None)
+    
+    if not auth_header:
+        raise Exception('Missing Authorization Header')
+    
+    parts = auth_header.split()
+    
+    if parts[0].lower() != 'bearer':
+        raise Exception('Invalid Authorization Header: must start with Bearer')
+    elif len(parts) == 1:
+        raise Exception('Invalid Authorization Header: token not found')
+    elif len(parts) > 2:
+        raise Exception('Invalid Authorization Header: contains extra content')
+    
+    token = parts[1]
+    
     try:
-        payload = jwt.decode(
-            token,
-            current_app.config['SECRET_KEY'],
-            algorithms=['HS256']
-        )
+        payload = decode_token(token)
         return payload
     except jwt.ExpiredSignatureError:
-        return None
-    except jwt.InvalidTokenError:
-        return None
+        raise Exception('Token has expired')
+    except jwt.InvalidTokenError as e:
+        raise Exception(f'Invalid token: {str(e)}')
+
+
+def get_jwt_identity():
+    """
+    Récupère l'identité (sub) du JWT vérifié dans la requête.
+    
+    Returns:
+        int/str: ID de l'utilisateur
+    """
+    payload = verify_jwt_in_request()
+    sub = payload.get('sub')
+    
+    # Essayer de retourner un entier si possible
+    if isinstance(sub, str):
+        try:
+            return int(sub)
+        except ValueError:
+            return sub
+    
+    return sub
+
+
+def get_jwt():
+    """
+    Récupère le payload complet du JWT vérifié dans la requête.
+    
+    Returns:
+        dict: Payload du token
+    """
+    return verify_jwt_in_request()
 
 
 def token_required(f):
@@ -63,38 +185,36 @@ def token_required(f):
     """
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = None
-        
-        # Récupérer le token du header Authorization
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            try:
-                # Format: "Bearer <token>"
-                token = auth_header.split(' ')[1]
-            except IndexError:
+        try:
+            payload = verify_jwt_in_request()
+            
+            # Vérifier que c'est un access token
+            if payload.get('type') != 'access':
                 return jsonify({
                     'success': False,
-                    'error': 'Format du token invalide. Utilisez: Bearer <token>'
+                    'error': 'A valid access token is required'
                 }), 401
+            
+            # Ajouter les infos utilisateur à g
+            try:
+                g.admin_id = int(payload.get('sub'))
+            except Exception:
+                g.admin_id = payload.get('sub')
+            
+            g.admin_username = payload.get('username')
+            g.jwt_payload = payload
+            
+            # Ajouter aussi à request pour rétrocompatibilité
+            request.current_user = payload
+            
+            return f(*args, **kwargs)
         
-        if not token:
+        except Exception as exc:
+            current_app.logger.debug('JWT verification failed: %s', exc)
             return jsonify({
                 'success': False,
-                'error': 'Token manquant. Authentification requise.'
+                'error': 'Authentication required',
+                'reason': str(exc)
             }), 401
-        
-        # Décoder et valider le token
-        payload = decode_token(token)
-        
-        if not payload:
-            return jsonify({
-                'success': False,
-                'error': 'Token invalide ou expiré'
-            }), 401
-        
-        # Ajouter les infos utilisateur à la requête
-        request.current_user = payload
-        
-        return f(*args, **kwargs)
     
     return decorated
