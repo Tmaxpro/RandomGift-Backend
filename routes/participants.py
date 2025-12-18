@@ -212,17 +212,19 @@ def add_participants_bulk():
 @participants_bp.route('/participants', methods=['GET'])
 def get_participants():
     """
-    Récupère tous les participants avec leur statut d'association.
+    Récupère tous les participants.
     
     Returns:
-        JSON: Liste des participants avec indication d'association
+        JSON: Liste des noms de participants et le total
     """
-    participants = store.get_participants()
+    participants_data = store.get_participants()
+    # Extraire juste les noms des participants
+    participants_list = [p['participant'] for p in participants_data]
     
     return jsonify({
         "success": True,
-        "total": len(participants),
-        "participants": participants
+        "total": len(participants_list),
+        "participants": participants_list
     }), 200
 
 

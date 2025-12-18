@@ -218,17 +218,19 @@ def add_gifts_bulk():
 @gifts_bp.route('/gifts', methods=['GET'])
 def get_gifts():
     """
-    Récupère tous les cadeaux avec leur statut d'association.
+    Récupère tous les cadeaux.
     
     Returns:
-        JSON: Liste des cadeaux avec indication d'association
+        JSON: Liste des cadeaux et le total
     """
-    gifts = store.get_gifts()
+    gifts_data = store.get_gifts()
+    # Extraire juste les valeurs des cadeaux
+    gifts_list = [g['gift'] for g in gifts_data]
     
     return jsonify({
         "success": True,
-        "total": len(gifts),
-        "gifts": gifts
+        "total": len(gifts_list),
+        "gifts": gifts_list
     }), 200
 
 

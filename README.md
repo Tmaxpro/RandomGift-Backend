@@ -308,25 +308,14 @@ Charlie
 ```
 
 #### `GET /participants`
-Lister tous les participants avec leur statut d'association
+Lister tous les participants
 
 **Réponse (200) :**
 ```json
 {
   "success": true,
   "total": 3,
-  "participants": [
-    {
-      "participant": "Alice",
-      "associated": true,
-      "gift": 10
-    },
-    {
-      "participant": "Bob",
-      "associated": false,
-      "gift": null
-    }
-  ]
+  "participants": ["Alice", "Bob", "Charlie"]
 }
 ```
 
@@ -407,23 +396,14 @@ gift
 ```
 
 #### `GET /gifts`
-Lister tous les cadeaux avec leur statut d'association
+Lister tous les cadeaux
 
 **Réponse (200) :**
 ```json
 {
   "success": true,
   "total": 3,
-  "gifts": [
-    {
-      "gift": 10,
-      "associated": true
-    },
-    {
-      "gift": 20,
-      "associated": false
-    }
-  ]
+  "gifts": [10, 20, 30]
 }
 ```
 
