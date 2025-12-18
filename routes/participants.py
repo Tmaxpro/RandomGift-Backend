@@ -1,6 +1,8 @@
 """
 Routes pour la gestion des participants.
 """
+import pandas as pd
+import io
 from flask import Blueprint, request, jsonify
 from storage.memory_store import store
 from utils.auth import token_required
@@ -61,62 +63,95 @@ def add_participant(current_user):
 @token_required
 def add_participants_bulk(current_user):
     """
-    Ajoute plusieurs participants en une seule opération.
+    Ajoute plusieurs participants en une seule opération via fichier CSV/Excel.
     
-    Body JSON attendu:
-        {
-            "participants": ["Alice", "Bob", "Charlie"]
-        }
+    Le fichier doit contenir une colonne nommée 'participant' ou 'name'.
+    Les formats acceptés: .csv, .xlsx, .xls
+    
+    Form-data attendu:
+        file: fichier CSV ou Excel
     
     Returns:
         JSON: Liste des participants ajoutés et ignorés
     """
-    data = request.get_json()
-    
-    # Validation des données
-    if not data or 'participants' not in data:
+    # Vérifier qu'un fichier a été envoyé
+    if 'file' not in request.files:
         return jsonify({
             "success": False,
-            "error": "Le champ 'participants' est requis"
+            "error": "Aucun fichier fourni. Utilisez le champ 'file' en form-data"
         }), 400
     
-    participants = data['participants']
+    file = request.files['file']
     
-    # Validation du type
-    if not isinstance(participants, list):
+    if file.filename == '':
         return jsonify({
             "success": False,
-            "error": "'participants' doit être une liste"
+            "error": "Nom de fichier vide"
         }), 400
     
-    if not participants:
+    # Vérifier l'extension du fichier
+    allowed_extensions = {'.csv', '.xlsx', '.xls'}
+    file_ext = '.' + file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    
+    if file_ext not in allowed_extensions:
         return jsonify({
             "success": False,
-            "error": "La liste de participants ne peut pas être vide"
+            "error": f"Format de fichier non supporté. Utilisez: {', '.join(allowed_extensions)}"
         }), 400
     
-    # Nettoyer et valider chaque participant
-    cleaned_participants = []
-    for participant in participants:
-        if not isinstance(participant, str):
+    try:
+        # Lire le fichier selon son format
+        if file_ext == '.csv':
+            df = pd.read_csv(io.BytesIO(file.read()))
+        else:  # .xlsx ou .xls
+            df = pd.read_excel(io.BytesIO(file.read()))
+        
+        # Chercher la colonne des participants
+        participant_col = None
+        for col in df.columns:
+            col_lower = col.lower().strip()
+            if col_lower in ['participant', 'participants', 'name', 'nom']:
+                participant_col = col
+                break
+        
+        if participant_col is None:
             return jsonify({
                 "success": False,
-                "error": f"Tous les participants doivent être des chaînes. Trouvé: {type(participant).__name__}"
+                "error": "Aucune colonne 'participant' ou 'name' trouvée dans le fichier",
+                "columns_found": list(df.columns)
             }), 400
         
-        cleaned_participant = participant.strip()
-        if cleaned_participant:
-            cleaned_participants.append(cleaned_participant)
+        # Extraire et nettoyer les participants
+        cleaned_participants = []
+        for value in df[participant_col]:
+            if pd.notna(value):  # Ignorer les valeurs NaN
+                participant = str(value).strip()
+                if participant:
+                    cleaned_participants.append(participant)
+        
+        if not cleaned_participants:
+            return jsonify({
+                "success": False,
+                "error": "Aucun participant valide trouvé dans le fichier"
+            }), 400
+        
+        # Ajouter les participants
+        result = store.add_participants_bulk(cleaned_participants)
+        
+        return jsonify({
+            "success": True,
+            "message": f"{len(result['added'])} participant(s) ajouté(s), {len(result['ignored'])} ignoré(s)",
+            "added": result['added'],
+            "ignored": result['ignored'],
+            "total_processed": len(cleaned_participants)
+        }), 201
     
-    # Ajouter les participants
-    result = store.add_participants_bulk(cleaned_participants)
-    
-    return jsonify({
-        "success": True,
-        "message": f"{len(result['added'])} participant(s) ajouté(s), {len(result['ignored'])} ignoré(s)",
-        "added": result['added'],
-        "ignored": result['ignored']
-    }), 201
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Erreur lors de la lecture du fichier",
+            "details": str(e)
+        }), 400
 
 
 @participants_bp.route('/participants', methods=['GET'])

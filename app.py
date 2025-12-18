@@ -79,26 +79,26 @@ def create_app():
             "endpoints": {
                 "auth": {
                     "POST /auth/login": "Authentification (retourne access_token et refresh_token)",
-                    "POST /auth/logout": "Déconnexion (révoque le token)",
+                    "POST /auth/logout": "Déconnexion (révoque le token) (requiert authentification)",
                     "POST /auth/refresh": "Rafraîchir l'access token avec un refresh token",
-                    "GET /auth/me": "Obtenir les informations de l'utilisateur connecté"
+                    "GET /auth/me": "Obtenir les informations de l'utilisateur connecté (requiert authentification)"
                 },
                 "participants": {
-                    "POST /participants": "Ajouter un participant",
-                    "POST /participants/bulk": "Ajouter plusieurs participants",
-                    "GET /participants": "Lister tous les participants",
-                    "DELETE /participants/<participant>": "Supprimer un participant"
+                    "POST /participants": "Ajouter un participant (requiert authentification)",
+                    "POST /participants/bulk": "Ajouter plusieurs participants via fichier CSV ou Excel (colonne: participant/name) (requiert authentification)",
+                    "GET /participants": "Lister tous les participants (requiert authentification)",
+                    "DELETE /participants/<participant>": "Supprimer un participant (requiert authentification)"
                 },
                 "gifts": {
-                    "POST /gifts": "Ajouter un cadeau",
-                    "POST /gifts/bulk": "Ajouter plusieurs cadeaux",
-                    "GET /gifts": "Lister tous les cadeaux",
-                    "DELETE /gifts/<gift>": "Supprimer un cadeau"
+                    "POST /gifts": "Ajouter un cadeau (requiert authentification)",
+                    "POST /gifts/bulk": "Ajouter plusieurs cadeaux via fichier CSV ou Excel (colonne: gift/cadeau) (requiert authentification)",
+                    "GET /gifts": "Lister tous les cadeaux (requiert authentification)",
+                    "DELETE /gifts/<gift>": "Supprimer un cadeau (requiert authentification)"
                 },
                 "associations": {
-                    "POST /associate": "Créer des associations aléatoires (associe tous les cadeaux disponibles à des participants aléatoires)",
-                    "GET /associations": "Lister toutes les associations",
-                    "DELETE /associations/<participant>": "Supprimer une association"
+                    "POST /associate": "Créer des associations aléatoires (associe tous les cadeaux disponibles à des participants aléatoires) (requiert authentification)",
+                    "GET /associations": "Lister toutes les associations (requiert authentification)",
+                    "DELETE /associations/<participant>": "Supprimer une association (requiert authentification)"
                 },
                 "export": {
                     "GET /export/csv": "Exporter les associations en CSV (requiert authentification)",

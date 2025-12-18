@@ -1,6 +1,8 @@
 """
 Routes pour la gestion des cadeaux.
 """
+import pandas as pd
+import io
 from flask import Blueprint, request, jsonify
 from storage.memory_store import store
 from utils.auth import token_required
@@ -61,60 +63,98 @@ def add_gift(current_user):
 @token_required
 def add_gifts_bulk(current_user):
     """
-    Ajoute plusieurs cadeaux en une seule opération.
+    Ajoute plusieurs cadeaux en une seule opération via fichier CSV/Excel.
     
-    Body JSON attendu:
-        {
-            "gifts": [10, 20, 30]
-        }
+    Le fichier doit contenir une colonne nommée 'gift', 'cadeau' ou 'number'.
+    Les formats acceptés: .csv, .xlsx, .xls
+    
+    Form-data attendu:
+        file: fichier CSV ou Excel
     
     Returns:
         JSON: Liste des cadeaux ajoutés et ignorés
     """
-    data = request.get_json()
-    
-    # Validation des données
-    if not data or 'gifts' not in data:
+    # Vérifier qu'un fichier a été envoyé
+    if 'file' not in request.files:
         return jsonify({
             "success": False,
-            "error": "Le champ 'gifts' est requis"
+            "error": "Aucun fichier fourni. Utilisez le champ 'file' en form-data"
         }), 400
     
-    gifts = data['gifts']
+    file = request.files['file']
     
-    # Validation du type
-    if not isinstance(gifts, list):
+    if file.filename == '':
         return jsonify({
             "success": False,
-            "error": "'gifts' doit être une liste"
+            "error": "Nom de fichier vide"
         }), 400
     
-    if not gifts:
+    # Vérifier l'extension du fichier
+    allowed_extensions = {'.csv', '.xlsx', '.xls'}
+    file_ext = '.' + file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    
+    if file_ext not in allowed_extensions:
         return jsonify({
             "success": False,
-            "error": "La liste de cadeaux ne peut pas être vide"
+            "error": f"Format de fichier non supporté. Utilisez: {', '.join(allowed_extensions)}"
         }), 400
     
-    # Valider et convertir chaque cadeau
-    converted_gifts = []
-    for gift in gifts:
-        if not isinstance(gift, (int, float)):
+    try:
+        # Lire le fichier selon son format
+        if file_ext == '.csv':
+            df = pd.read_csv(io.BytesIO(file.read()))
+        else:  # .xlsx ou .xls
+            df = pd.read_excel(io.BytesIO(file.read()))
+        
+        # Chercher la colonne des cadeaux
+        gift_col = None
+        for col in df.columns:
+            col_lower = col.lower().strip()
+            if col_lower in ['gift', 'gifts', 'cadeau', 'cadeaux', 'number', 'numero', 'numéro']:
+                gift_col = col
+                break
+        
+        if gift_col is None:
             return jsonify({
                 "success": False,
-                "error": f"Tous les cadeaux doivent être des nombres. Trouvé: {type(gift).__name__}"
+                "error": "Aucune colonne 'gift' ou 'cadeau' trouvée dans le fichier",
+                "columns_found": list(df.columns)
             }), 400
         
-        converted_gifts.append(int(gift))
+        # Extraire et convertir les cadeaux
+        converted_gifts = []
+        for value in df[gift_col]:
+            if pd.notna(value):  # Ignorer les valeurs NaN
+                try:
+                    gift = int(float(value))  # Convertir en float puis int pour gérer les décimaux
+                    converted_gifts.append(gift)
+                except (ValueError, TypeError):
+                    # Ignorer les valeurs non numériques
+                    pass
+        
+        if not converted_gifts:
+            return jsonify({
+                "success": False,
+                "error": "Aucun cadeau valide (nombre) trouvé dans le fichier"
+            }), 400
+        
+        # Ajouter les cadeaux
+        result = store.add_gifts_bulk(converted_gifts)
+        
+        return jsonify({
+            "success": True,
+            "message": f"{len(result['added'])} cadeau(x) ajouté(s), {len(result['ignored'])} ignoré(s)",
+            "added": result['added'],
+            "ignored": result['ignored'],
+            "total_processed": len(converted_gifts)
+        }), 201
     
-    # Ajouter les cadeaux
-    result = store.add_gifts_bulk(converted_gifts)
-    
-    return jsonify({
-        "success": True,
-        "message": f"{len(result['added'])} cadeau(x) ajouté(s), {len(result['ignored'])} ignoré(s)",
-        "added": result['added'],
-        "ignored": result['ignored']
-    }), 201
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Erreur lors de la lecture du fichier",
+            "details": str(e)
+        }), 400
 
 
 @gifts_bp.route('/gifts', methods=['GET'])
