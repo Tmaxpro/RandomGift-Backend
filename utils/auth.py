@@ -205,7 +205,7 @@ def token_required(f):
             g.jwt_payload = payload
             
             # Ajouter aussi à request pour rétrocompatibilité
-            request.current_user = payload
+            #request.current_user = payload
             
             return f(*args, **kwargs)
         
