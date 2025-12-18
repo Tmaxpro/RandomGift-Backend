@@ -63,22 +63,77 @@ def add_participant():
 @token_required
 def add_participants_bulk():
     """
-    Ajoute plusieurs participants en une seule opération via fichier CSV/Excel.
+    Ajoute plusieurs participants en une seule opération.
     
-    Le fichier doit contenir une colonne nommée 'participant' ou 'name'.
-    Les formats acceptés: .csv, .xlsx, .xls
+    Deux modes d'envoi possibles:
     
-    Form-data attendu:
-        file: fichier CSV ou Excel
+    1. Via fichier CSV/Excel (form-data):
+        - Le fichier doit contenir une colonne nommée 'participant' ou 'name'
+        - Formats acceptés: .csv, .xlsx, .xls
+        - Form-data: file: fichier CSV ou Excel
+    
+    2. Via liste JSON (application/json):
+        - Body JSON attendu:
+            {
+                "participants": ["Alice", "Bob", "Charlie"]
+            }
     
     Returns:
         JSON: Liste des participants ajoutés et ignorés
     """
-    # Vérifier qu'un fichier a été envoyé
+    # Mode 1: Vérifier si c'est une requête JSON avec une liste
+    if request.is_json:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "Données JSON invalides"
+            }), 400
+        
+        # Chercher la liste de participants
+        participants_list = None
+        for key in ['participants', 'participant', 'names', 'name', 'noms', 'nom']:
+            if key in data and isinstance(data[key], list):
+                participants_list = data[key]
+                break
+        
+        if participants_list is None:
+            return jsonify({
+                "success": False,
+                "error": "Le champ 'participants' doit être une liste. Ex: {\"participants\": [\"Alice\", \"Bob\"]}"
+            }), 400
+        
+        # Nettoyer et valider les participants
+        cleaned_participants = []
+        for value in participants_list:
+            if value is not None:
+                participant = str(value).strip()
+                if participant:
+                    cleaned_participants.append(participant)
+        
+        if not cleaned_participants:
+            return jsonify({
+                "success": False,
+                "error": "Aucun participant valide dans la liste"
+            }), 400
+        
+        # Ajouter les participants
+        result = store.add_participants_bulk(cleaned_participants)
+        
+        return jsonify({
+            "success": True,
+            "message": f"{len(result['added'])} participant(s) ajouté(s), {len(result['ignored'])} ignoré(s)",
+            "added": result['added'],
+            "ignored": result['ignored'],
+            "total_processed": len(cleaned_participants)
+        }), 201
+    
+    # Mode 2: Via fichier CSV/Excel
     if 'file' not in request.files:
         return jsonify({
             "success": False,
-            "error": "Aucun fichier fourni. Utilisez le champ 'file' en form-data"
+            "error": "Aucun fichier fourni. Utilisez le champ 'file' en form-data ou envoyez un JSON avec 'participants': [...]"
         }), 400
     
     file = request.files['file']

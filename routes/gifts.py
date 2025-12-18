@@ -63,22 +63,80 @@ def add_gift():
 @token_required
 def add_gifts_bulk():
     """
-    Ajoute plusieurs cadeaux en une seule opération via fichier CSV/Excel.
+    Ajoute plusieurs cadeaux en une seule opération.
     
-    Le fichier doit contenir une colonne nommée 'gift', 'cadeau' ou 'number'.
-    Les formats acceptés: .csv, .xlsx, .xls
+    Deux modes d'envoi possibles:
     
-    Form-data attendu:
-        file: fichier CSV ou Excel
+    1. Via fichier CSV/Excel (form-data):
+        - Le fichier doit contenir une colonne nommée 'gift', 'cadeau' ou 'number'
+        - Formats acceptés: .csv, .xlsx, .xls
+        - Form-data: file: fichier CSV ou Excel
+    
+    2. Via liste JSON (application/json):
+        - Body JSON attendu:
+            {
+                "gifts": [10, 20, 30, 40, 50]
+            }
     
     Returns:
         JSON: Liste des cadeaux ajoutés et ignorés
     """
-    # Vérifier qu'un fichier a été envoyé
+    # Mode 1: Vérifier si c'est une requête JSON avec une liste
+    if request.is_json:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "Données JSON invalides"
+            }), 400
+        
+        # Chercher la liste de cadeaux
+        gifts_list = None
+        for key in ['gifts', 'gift', 'cadeaux', 'cadeau', 'numbers', 'number', 'numeros', 'numéros']:
+            if key in data and isinstance(data[key], list):
+                gifts_list = data[key]
+                break
+        
+        if gifts_list is None:
+            return jsonify({
+                "success": False,
+                "error": "Le champ 'gifts' doit être une liste. Ex: {\"gifts\": [10, 20, 30]}"
+            }), 400
+        
+        # Convertir et valider les cadeaux
+        converted_gifts = []
+        for value in gifts_list:
+            if value is not None:
+                try:
+                    gift = int(float(value))  # Convertir en float puis int pour gérer les décimaux
+                    converted_gifts.append(gift)
+                except (ValueError, TypeError):
+                    # Ignorer les valeurs non numériques
+                    pass
+        
+        if not converted_gifts:
+            return jsonify({
+                "success": False,
+                "error": "Aucun cadeau valide (nombre) dans la liste"
+            }), 400
+        
+        # Ajouter les cadeaux
+        result = store.add_gifts_bulk(converted_gifts)
+        
+        return jsonify({
+            "success": True,
+            "message": f"{len(result['added'])} cadeau(x) ajouté(s), {len(result['ignored'])} ignoré(s)",
+            "added": result['added'],
+            "ignored": result['ignored'],
+            "total_processed": len(converted_gifts)
+        }), 201
+    
+    # Mode 2: Via fichier CSV/Excel
     if 'file' not in request.files:
         return jsonify({
             "success": False,
-            "error": "Aucun fichier fourni. Utilisez le champ 'file' en form-data"
+            "error": "Aucun fichier fourni. Utilisez le champ 'file' en form-data ou envoyez un JSON avec 'gifts': [...]"
         }), 400
     
     file = request.files['file']

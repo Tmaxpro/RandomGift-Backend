@@ -270,11 +270,30 @@ Authorization: Bearer <votre_token_jwt>
 #### `POST /participants/bulk`
 Ajouter plusieurs participants
 
-**Body :**
+**🔒 Nécessite authentification JWT**
+
+**Deux modes d'envoi possibles :**
+
+**Mode 1 - Liste JSON :**
 ```json
 {
   "participants": ["Alice", "Bob", "Charlie"]
 }
+```
+
+**Clés acceptées :** `participants`, `participant`, `names`, `name`, `noms`, `nom`
+
+**Mode 2 - Fichier CSV/Excel (form-data) :**
+- Champ : `file`
+- Formats : `.csv`, `.xlsx`, `.xls`
+- Le fichier doit contenir une colonne nommée `participant`, `name` ou `nom`
+
+**Exemple de fichier CSV :**
+```csv
+participant
+Alice
+Bob
+Charlie
 ```
 
 **Réponse (201) :**
@@ -283,7 +302,8 @@ Ajouter plusieurs participants
   "success": true,
   "message": "3 participant(s) ajouté(s), 0 ignoré(s)",
   "added": ["Alice", "Bob", "Charlie"],
-  "ignored": []
+  "ignored": [],
+  "total_processed": 3
 }
 ```
 
@@ -349,11 +369,30 @@ Ajouter un cadeau unique
 #### `POST /gifts/bulk`
 Ajouter plusieurs cadeaux
 
-**Body :**
+**🔒 Nécessite authentification JWT**
+
+**Deux modes d'envoi possibles :**
+
+**Mode 1 - Liste JSON :**
 ```json
 {
   "gifts": [10, 20, 30]
 }
+```
+
+**Clés acceptées :** `gifts`, `gift`, `cadeaux`, `cadeau`, `numbers`, `number`, `numéros`
+
+**Mode 2 - Fichier CSV/Excel (form-data) :**
+- Champ : `file`
+- Formats : `.csv`, `.xlsx`, `.xls`
+- Le fichier doit contenir une colonne nommée `gift`, `cadeau` ou `number`
+
+**Exemple de fichier CSV :**
+```csv
+gift
+10
+20
+30
 ```
 
 **Réponse (201) :**
@@ -362,7 +401,8 @@ Ajouter plusieurs cadeaux
   "success": true,
   "message": "3 cadeau(x) ajouté(s), 0 ignoré(s)",
   "added": [10, 20, 30],
-  "ignored": []
+  "ignored": [],
+  "total_processed": 3
 }
 ```
 
