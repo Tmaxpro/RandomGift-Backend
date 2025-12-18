@@ -18,7 +18,8 @@ def create_associations(current_user):
     
     Règles:
     - Seuls les participants et cadeaux non associés sont utilisés
-    - Le nombre de participants non associés doit être ≤ nombre de cadeaux non associés
+    - Chaque cadeau disponible est associé à un participant aléatoire
+    - Si il y a plus de participants que de cadeaux, seuls certains participants seront associés
     - Les associations existantes ne sont jamais modifiées
     
     Returns:

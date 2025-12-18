@@ -77,6 +77,12 @@ def create_app():
             "version": "1.0.0",
             "storage": "SQLite Database",
             "endpoints": {
+                "auth": {
+                    "POST /auth/login": "Authentification (retourne access_token et refresh_token)",
+                    "POST /auth/logout": "Déconnexion (révoque le token)",
+                    "POST /auth/refresh": "Rafraîchir l'access token avec un refresh token",
+                    "GET /auth/me": "Obtenir les informations de l'utilisateur connecté"
+                },
                 "participants": {
                     "POST /participants": "Ajouter un participant",
                     "POST /participants/bulk": "Ajouter plusieurs participants",
@@ -90,9 +96,13 @@ def create_app():
                     "DELETE /gifts/<gift>": "Supprimer un cadeau"
                 },
                 "associations": {
-                    "POST /associate": "Créer des associations aléatoires",
+                    "POST /associate": "Créer des associations aléatoires (associe tous les cadeaux disponibles à des participants aléatoires)",
                     "GET /associations": "Lister toutes les associations",
                     "DELETE /associations/<participant>": "Supprimer une association"
+                },
+                "export": {
+                    "GET /export/csv": "Exporter les associations en CSV (requiert authentification)",
+                    "GET /export/pdf": "Exporter les associations en PDF (requiert authentification)"
                 },
                 "system": {
                     "GET /status": "État complet du système",

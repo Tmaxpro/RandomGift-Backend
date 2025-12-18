@@ -17,14 +17,12 @@ class AssociationService:
         
         Règles:
         - Seuls les participants et cadeaux non associés sont utilisés
-        - Le nombre de participants non associés doit être ≤ au nombre de cadeaux non associés
+        - Chaque cadeau disponible est associé à un participant aléatoire
+        - Si il y a plus de participants que de cadeaux, seuls certains participants seront associés
         - Les associations existantes ne sont jamais modifiées
         
         Returns:
             dict: Résultat de l'opération avec nouvelles associations et total
-            
-        Raises:
-            ValueError: Si pas assez de cadeaux disponibles
         """
         # Récupérer les éléments non associés
         unassociated_participants = store.get_unassociated_participants()
@@ -47,23 +45,18 @@ class AssociationService:
                 "total_associations": store.get_associations()
             }
         
-        # Vérifier qu'il y a assez de cadeaux
-        if len(unassociated_participants) > len(unassociated_gifts):
-            return {
-                "success": False,
-                "message": f"Pas assez de cadeaux disponibles. Participants: {len(unassociated_participants)}, Cadeaux: {len(unassociated_gifts)}",
-                "new_associations": [],
-                "total_associations": store.get_associations()
-            }
+        # Mélanger les participants pour choisir aléatoirement
+        shuffled_participants = unassociated_participants.copy()
+        random.shuffle(shuffled_participants)
         
-        # Mélanger les cadeaux pour assurer le caractère aléatoire
-        shuffled_gifts = unassociated_gifts.copy()
-        random.shuffle(shuffled_gifts)
-        
-        # Créer les associations
+        # Créer les associations: on associe tous les cadeaux disponibles
+        # à des participants choisis aléatoirement
         new_associations = []
-        for i, participant in enumerate(unassociated_participants):
-            gift = shuffled_gifts[i]
+        num_associations = min(len(unassociated_gifts), len(unassociated_participants))
+        
+        for i in range(num_associations):
+            participant = shuffled_participants[i]
+            gift = unassociated_gifts[i]
             store.add_association(participant, gift)
             new_associations.append({
                 "participant": participant,
@@ -94,10 +87,7 @@ class AssociationService:
         if not unassociated_gifts:
             return False, "Aucun cadeau non associé disponible"
         
-        if len(unassociated_participants) > len(unassociated_gifts):
-            return False, f"Pas assez de cadeaux. Participants: {len(unassociated_participants)}, Cadeaux: {len(unassociated_gifts)}"
-        
-        return True, "Association possible"
+        return True, f"Association possible: {len(unassociated_gifts)} cadeau(x) seront associés"
 
 
 # Instance du service
