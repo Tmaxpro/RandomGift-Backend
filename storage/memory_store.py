@@ -221,15 +221,15 @@ class DatabaseStore:
         ff_count = sum(1 for c in all_couples if c.type_couple == 'F-F')
         
         return {
-            "hommes": {
+            "participants": {
                 "total": len(all_hommes),
                 "list": [h.numero for h in all_hommes]
             },
-            "femmes": {
+            "gifts": {
                 "total": len(all_femmes),
                 "list": [f.numero for f in all_femmes]
             },
-            "couples": {
+            "associations": {
                 "total": len(all_couples),
                 "H-F": hf_count,
                 "H-H": hh_count,
