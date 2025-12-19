@@ -15,11 +15,11 @@ participants_bp = Blueprint('participants', __name__)
 @token_required
 def add_participant():
     """
-    Ajoute un homme (numéro).
+    Ajoute un homme (identifiant).
     
     Body JSON attendu:
         {
-            "numero": 10
+            "numero": "H1"
         }
     
     Returns:
@@ -38,14 +38,14 @@ def add_participant():
             "error": "Le champ 'numero' est requis"
         }), 400
     
-    # Validation du type (doit être un nombre)
-    if not isinstance(numero, (int, float)):
+    # Convertir en string
+    numero = str(numero).strip()
+    
+    if not numero:
         return jsonify({
             "success": False,
-            "error": "Le numéro doit être un nombre"
+            "error": "Le numéro ne peut pas être vide"
         }), 400
-    
-    numero = int(numero)
     
     # Ajouter l'homme
     if store.add_homme(numero):
@@ -65,7 +65,7 @@ def add_participant():
 @token_required
 def add_participants_bulk():
     """
-    Ajoute plusieurs hommes (numéros) en une seule opération.
+    Ajoute plusieurs hommes (identifiants) en une seule opération.
     
     Deux modes d'envoi possibles:
     
@@ -77,7 +77,7 @@ def add_participants_bulk():
     2. Via liste JSON (application/json):
         - Body JSON attendu:
             {
-                "numeros": [10, 11, 12]
+                "numeros": ["H1", "H2", "H3"]
             }
     
     Returns:
@@ -103,14 +103,16 @@ def add_participants_bulk():
         if numeros_list is None:
             return jsonify({
                 "success": False,
-                "error": "Le champ 'numeros' doit être une liste. Ex: {\"numeros\": [10, 11, 12]}"
+                "error": "Le champ 'numeros' doit être une liste. Ex: {\"numeros\": [\"H1\", \"H2\", \"H3\"]}"
             }), 400
         
-        # Valider et convertir les numéros
+        # Valider et convertir les numéros en strings
         cleaned_numeros = []
         for value in numeros_list:
-            if value is not None and isinstance(value, (int, float)):
-                cleaned_numeros.append(int(value))
+            if value is not None:
+                str_value = str(value).strip()
+                if str_value:
+                    cleaned_numeros.append(str_value)
         
         if not cleaned_numeros:
             return jsonify({
@@ -176,14 +178,13 @@ def add_participants_bulk():
                 "columns_found": list(df.columns)
             }), 400
         
-        # Extraire et valider les numéros
+        # Extraire et valider les numéros (maintenant en strings)
         cleaned_numeros = []
         for value in df[numero_col]:
             if pd.notna(value):  # Ignorer les valeurs NaN
-                try:
-                    cleaned_numeros.append(int(value))
-                except (ValueError, TypeError):
-                    pass  # Ignorer les valeurs non numériques
+                str_value = str(value).strip()
+                if str_value:
+                    cleaned_numeros.append(str_value)
         
         if not cleaned_numeros:
             return jsonify({
@@ -229,14 +230,14 @@ def get_participants():
     }), 200
 
 
-@participants_bp.route('/participants/<int:numero>', methods=['DELETE'])
+@participants_bp.route('/participants/<numero>', methods=['DELETE'])
 @token_required
 def delete_participant(numero):
     """
-    Supprime un homme (numéro).
+    Supprime un homme (identifiant).
     
     Args:
-        numero (int): Le numéro de l'homme à supprimer
+        numero (str): L'identifiant de l'homme à supprimer (ex: H1)
     
     Returns:
         JSON: Confirmation de la suppression ou erreur

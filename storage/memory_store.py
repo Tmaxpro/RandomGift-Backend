@@ -8,7 +8,7 @@ from storage.database import db, Homme, Femme, Couple
 class DatabaseStore:
     """
     Classe pour gérer le stockage en base de données des données.
-    Terminologie: Homme et Femme (représentés par des numéros)
+    Terminologie: Homme et Femme (représentés par des identifiants ex: H1, F2)
     """
     
     # ==================== GESTION DES HOMMES ====================
@@ -18,7 +18,7 @@ class DatabaseStore:
         Ajoute un homme à la base de données s'il n'existe pas déjà.
         
         Args:
-            numero (int): Le numéro de l'homme à ajouter
+            numero (str): L'identifiant de l'homme à ajouter (ex: H1)
             
         Returns:
             bool: True si ajouté, False si déjà existant
@@ -37,7 +37,7 @@ class DatabaseStore:
         Ajoute plusieurs hommes en une seule opération.
         
         Args:
-            numeros (list): Liste des numéros à ajouter
+            numeros (list): Liste des identifiants à ajouter (ex: ["H1", "H2"])
             
         Returns:
             dict: Résultat avec hommes ajoutés et ignorés
@@ -58,7 +58,7 @@ class DatabaseStore:
         Archive un homme (soft delete).
         
         Args:
-            numero (int): Le numéro de l'homme à archiver
+            numero (str): L'identifiant de l'homme à archiver (ex: H1)
             
         Returns:
             bool: True si archivé, False si non trouvé
@@ -83,10 +83,10 @@ class DatabaseStore:
     
     def get_hommes_numeros(self):
         """
-        Retourne uniquement les numéros des hommes non archivés.
+        Retourne uniquement les identifiants des hommes non archivés.
         
         Returns:
-            list: Liste des numéros
+            list: Liste des identifiants (ex: ["H1", "H2"])
         """
         hommes = Homme.query.filter_by(is_archived=False).all()
         return [homme.numero for homme in hommes]
@@ -98,7 +98,7 @@ class DatabaseStore:
         Ajoute une femme à la base de données si elle n'existe pas déjà.
         
         Args:
-            numero (int): Le numéro de la femme à ajouter
+            numero (str): L'identifiant de la femme à ajouter (ex: F1)
             
         Returns:
             bool: True si ajoutée, False si déjà existante
@@ -117,7 +117,7 @@ class DatabaseStore:
         Ajoute plusieurs femmes en une seule opération.
         
         Args:
-            numeros (list): Liste des numéros à ajouter
+            numeros (list): Liste des identifiants à ajouter (ex: ["F1", "F2"])
             
         Returns:
             dict: Résultat avec femmes ajoutées et ignorées
@@ -138,7 +138,7 @@ class DatabaseStore:
         Archive une femme (soft delete).
         
         Args:
-            numero (int): Le numéro de la femme à archiver
+            numero (str): L'identifiant de la femme à archiver (ex: F1)
             
         Returns:
             bool: True si archivée, False si non trouvée
@@ -163,10 +163,10 @@ class DatabaseStore:
     
     def get_femmes_numeros(self):
         """
-        Retourne uniquement les numéros des femmes non archivées.
+        Retourne uniquement les identifiants des femmes non archivées.
         
         Returns:
-            list: Liste des numéros
+            list: Liste des identifiants (ex: ["F1", "F2"])
         """
         femmes = Femme.query.filter_by(is_archived=False).all()
         return [femme.numero for femme in femmes]
@@ -179,8 +179,8 @@ class DatabaseStore:
         
         Args:
             type_couple (str): Type de couple ('H-F', 'H-H', 'F-F')
-            personne1 (int): Numéro de la première personne
-            personne2 (int): Numéro de la deuxième personne
+            personne1 (str): Identifiant de la première personne (ex: H1)
+            personne2 (str): Identifiant de la deuxième personne (ex: F1)
             
         Returns:
             bool: True si créé

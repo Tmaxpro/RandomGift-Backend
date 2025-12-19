@@ -15,11 +15,11 @@ gifts_bp = Blueprint('gifts', __name__)
 @token_required
 def add_gift():
     """
-    Ajoute une femme (numéro).
+    Ajoute une femme (identifiant).
     
     Body JSON attendu:
         {
-            "numero": 10
+            "numero": "F1"
         }
     
     Returns:
@@ -38,14 +38,14 @@ def add_gift():
             "error": "Le champ 'numero' est requis"
         }), 400
     
-    # Validation du type (int ou float converti en int)
-    if not isinstance(numero, (int, float)):
+    # Convertir en string
+    numero = str(numero).strip()
+    
+    if not numero:
         return jsonify({
             "success": False,
-            "error": "Le numéro doit être un nombre"
+            "error": "Le numéro ne peut pas être vide"
         }), 400
-    
-    numero = int(numero)
     
     # Ajouter la femme
     if store.add_femme(numero):
@@ -65,7 +65,7 @@ def add_gift():
 @token_required
 def add_gifts_bulk():
     """
-    Ajoute plusieurs femmes (numéros) en une seule opération.
+    Ajoute plusieurs femmes (identifiants) en une seule opération.
     
     Deux modes d'envoi possibles:
     
@@ -77,7 +77,7 @@ def add_gifts_bulk():
     2. Via liste JSON (application/json):
         - Body JSON attendu:
             {
-                "numeros": [10, 20, 30, 40, 50]
+                "numeros": ["F1", "F2", "F3"]
             }
     
     Returns:
@@ -103,18 +103,16 @@ def add_gifts_bulk():
         if numeros_list is None:
             return jsonify({
                 "success": False,
-                "error": "Le champ 'numeros' doit être une liste. Ex: {\"numeros\": [10, 20, 30]}"
+                "error": "Le champ 'numeros' doit être une liste. Ex: {\"numeros\": [\"F1\", \"F2\", \"F3\"]}"
             }), 400
         
-        # Convertir et valider les numéros
+        # Convertir et valider les numéros en strings
         converted_numeros = []
         for value in numeros_list:
             if value is not None:
-                try:
-                    numero = int(float(value))
-                    converted_numeros.append(numero)
-                except (ValueError, TypeError):
-                    pass
+                str_value = str(value).strip()
+                if str_value:
+                    converted_numeros.append(str_value)
         
         if not converted_numeros:
             return jsonify({
@@ -180,15 +178,13 @@ def add_gifts_bulk():
                 "columns_found": list(df.columns)
             }), 400
         
-        # Extraire et convertir les numéros
+        # Extraire et convertir les numéros en strings
         converted_numeros = []
         for value in df[numero_col]:
             if pd.notna(value):
-                try:
-                    numero = int(float(value))
-                    converted_numeros.append(numero)
-                except (ValueError, TypeError):
-                    pass
+                str_value = str(value).strip()
+                if str_value:
+                    converted_numeros.append(str_value)
         
         if not converted_numeros:
             return jsonify({
@@ -234,14 +230,14 @@ def get_gifts():
     }), 200
 
 
-@gifts_bp.route('/gifts/<int:numero>', methods=['DELETE'])
+@gifts_bp.route('/gifts/<numero>', methods=['DELETE'])
 @token_required
 def delete_gift(numero):
     """
-    Supprime une femme (numéro).
+    Supprime une femme (identifiant).
     
     Args:
-        numero (int): Le numéro de la femme à supprimer
+        numero (str): L'identifiant de la femme à supprimer (ex: F1)
     
     Returns:
         JSON: Confirmation de la suppression ou erreur

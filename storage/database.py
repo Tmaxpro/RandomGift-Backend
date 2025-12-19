@@ -64,12 +64,12 @@ class TokenBlocklist(db.Model):
 
 class Homme(db.Model):
     """
-    Modèle pour stocker les hommes (numéros).
+    Modèle pour stocker les hommes (identifiants ex: H1, H2...).
     """
     __tablename__ = 'hommes'
     
     id = db.Column(db.Integer, primary_key=True)
-    numero = db.Column(db.Integer, unique=True, nullable=False, index=True)
+    numero = db.Column(db.String(50), unique=True, nullable=False, index=True)
     is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -89,12 +89,12 @@ class Homme(db.Model):
 
 class Femme(db.Model):
     """
-    Modèle pour stocker les femmes (numéros).
+    Modèle pour stocker les femmes (identifiants ex: F1, F2...).
     """
     __tablename__ = 'femmes'
     
     id = db.Column(db.Integer, primary_key=True)
-    numero = db.Column(db.Integer, unique=True, nullable=False, index=True)
+    numero = db.Column(db.String(50), unique=True, nullable=False, index=True)
     is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -121,8 +121,8 @@ class Couple(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     type_couple = db.Column(db.String(5), nullable=False, index=True)  # 'H-F', 'H-H', 'F-F'
-    personne1 = db.Column(db.Integer, nullable=False)
-    personne2 = db.Column(db.Integer, nullable=False)
+    personne1 = db.Column(db.String(50), nullable=False)  # ex: H1, F2
+    personne2 = db.Column(db.String(50), nullable=False)  # ex: F1, H3
     is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
