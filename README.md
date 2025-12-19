@@ -547,10 +547,23 @@ Réinitialiser toutes les données
   "success": true,
   "message": "Toutes les données ont été réinitialisées",
   "previous_data": {
-    "names": 5,
-    "numbers": 6,
+    "participants": 5,
+    "gifts": 6,
     "associations": 3
   },
+  "timestamp": "2025-12-18T10:30:00.123456"
+}
+```
+
+#### `DELETE /reset/associations`
+Réinitialiser uniquement les associations (les participants et cadeaux sont conservés)
+
+**Réponse (200) :**
+```json
+{
+  "success": true,
+  "message": "Toutes les associations ont été réinitialisées",
+  "associations_deleted": 3,
   "timestamp": "2025-12-18T10:30:00.123456"
 }
 ```

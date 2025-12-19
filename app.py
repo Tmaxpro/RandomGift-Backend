@@ -108,6 +108,7 @@ def create_app():
                     "GET /status": "État complet du système",
                     "GET /health": "Vérification de santé",
                     "DELETE /reset": "Réinitialiser toutes les données"
+                    "DELETE /reset/associations": "Réinitialiser uniquement les associations"
                 }
             }
         }), 200

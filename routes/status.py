@@ -76,3 +76,25 @@ def reset_data():
         "previous_data": old_stats,
         "timestamp": datetime.now().isoformat()
     }), 200
+
+
+@status_bp.route('/reset/associations', methods=['DELETE'])
+def reset_associations():
+    """
+    Réinitialise uniquement les associations.
+    
+    Les participants et cadeaux sont conservés mais redeviennent non associés.
+    
+    Returns:
+        JSON: Confirmation de la réinitialisation des associations
+    """
+    # Compter les associations avant réinitialisation
+    associations_count = store.reset_associations()
+    
+    return jsonify({
+        "success": True,
+        "message": "Toutes les associations ont été réinitialisées",
+        "associations_deleted": associations_count,
+        "timestamp": datetime.now().isoformat()
+    }), 200
+

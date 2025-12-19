@@ -283,6 +283,14 @@ class DatabaseStore:
         Gift.query.delete()
         db.session.commit()
     
+    def reset_associations(self):
+        """Réinitialise uniquement les associations (les participants et cadeaux sont conservés)."""
+        associations_count = Association.query.filter_by(is_archived=False).count()
+        # Archiver toutes les associations
+        Association.query.filter_by(is_archived=False).update({'is_archived': True})
+        db.session.commit()
+        return associations_count
+    
     @property
     def participants(self):
         """Propriété pour compatibilité - retourne la liste des participants non archivés."""
