@@ -52,19 +52,4 @@ def get_associations():
     }), 200
 
 
-@associations_bp.route('/associations/reset', methods=['DELETE'])
-@token_required
-def reset_associations():
-    """
-    Réinitialise tous les couples/associations.
-    Les hommes et femmes restent en base.
-    
-    Returns:
-        JSON: Confirmation de la réinitialisation
-    """
-    count = store.reset_couples()
-    
-    return jsonify({
-        "success": True,
-        "message": f"{count} couple(s) supprimé(s)"
-    }), 200
+
