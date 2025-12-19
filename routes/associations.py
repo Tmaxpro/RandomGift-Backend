@@ -48,7 +48,7 @@ def get_associations():
     return jsonify({
         "success": True,
         "total": len(couples),
-        "couples": couples
+        "associations": couples
     }), 200
 
 

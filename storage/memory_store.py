@@ -15,18 +15,28 @@ class DatabaseStore:
     
     def add_homme(self, numero):
         """
-        Ajoute un homme à la base de données s'il n'existe pas déjà.
+        Ajoute un homme à la base de données.
+        Si l'homme existe déjà archivé, il est désarchivé.
         
         Args:
             numero (str): L'identifiant de l'homme à ajouter (ex: H1)
             
         Returns:
-            bool: True si ajouté, False si déjà existant
+            bool: True si ajouté/désarchivé, False si déjà existant et actif
         """
-        existing = Homme.query.filter_by(numero=numero, is_archived=False).first()
-        if existing:
+        # Vérifier si existe et actif
+        existing_active = Homme.query.filter_by(numero=numero, is_archived=False).first()
+        if existing_active:
             return False
         
+        # Vérifier si existe mais archivé
+        existing_archived = Homme.query.filter_by(numero=numero, is_archived=True).first()
+        if existing_archived:
+            existing_archived.is_archived = False
+            db.session.commit()
+            return True
+        
+        # Créer un nouveau
         new_homme = Homme(numero=numero)
         db.session.add(new_homme)
         db.session.commit()
@@ -95,18 +105,28 @@ class DatabaseStore:
     
     def add_femme(self, numero):
         """
-        Ajoute une femme à la base de données si elle n'existe pas déjà.
+        Ajoute une femme à la base de données.
+        Si la femme existe déjà archivée, elle est désarchivée.
         
         Args:
             numero (str): L'identifiant de la femme à ajouter (ex: F1)
             
         Returns:
-            bool: True si ajoutée, False si déjà existante
+            bool: True si ajoutée/désarchivée, False si déjà existante et active
         """
-        existing = Femme.query.filter_by(numero=numero, is_archived=False).first()
-        if existing:
+        # Vérifier si existe et active
+        existing_active = Femme.query.filter_by(numero=numero, is_archived=False).first()
+        if existing_active:
             return False
         
+        # Vérifier si existe mais archivée
+        existing_archived = Femme.query.filter_by(numero=numero, is_archived=True).first()
+        if existing_archived:
+            existing_archived.is_archived = False
+            db.session.commit()
+            return True
+        
+        # Créer une nouvelle
         new_femme = Femme(numero=numero)
         db.session.add(new_femme)
         db.session.commit()
