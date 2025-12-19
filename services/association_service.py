@@ -1,6 +1,5 @@
 """
 Service gérant la logique d'association aléatoire entre hommes et femmes.
-Remplace l'ancien système participants/cadeaux.
 """
 import random
 from datetime import datetime
@@ -20,10 +19,11 @@ class AssociationService:
     @staticmethod
     def create_random_associations():
         """
-        Crée des associations aléatoires entre hommes (participants) et femmes (gifts).
+        Crée des associations aléatoires entre hommes et femmes.
+        Récupère les listes directement depuis la base de données.
         
         Algorithme:
-        1. Récupérer les hommes (participants) et femmes (gifts) non associés
+        1. Récupérer les hommes et femmes de la base de données
         2. Mélanger les deux listes aléatoirement
         3. Associer H-F tant que les deux listes contiennent des éléments
         4. Associer les femmes restantes entre elles (F-F)
@@ -32,15 +32,15 @@ class AssociationService:
         Returns:
             dict: Résultat de l'opération avec les couples créés
         """
-        # Récupérer les hommes (participants) et femmes (gifts) non associés
-        hommes = store.get_unassociated_participants()
-        femmes = store.get_unassociated_gifts()
+        # Récupérer les hommes et femmes de la base de données
+        hommes = store.get_hommes_numeros()
+        femmes = store.get_femmes_numeros()
         
         # Vérifier qu'il y a des éléments à associer
         if not hommes and not femmes:
             return {
-                "success": True,
-                "message": "Aucune personne à associer",
+                "success": False,
+                "error": "Aucune personne à associer. Ajoutez des hommes et/ou des femmes d'abord.",
                 "timestamp": datetime.now().isoformat(timespec='seconds'),
                 "couples": [],
                 "statistiques": {
@@ -55,7 +55,7 @@ class AssociationService:
         
         # Copier les listes pour ne pas modifier les originales
         hommes_list = hommes.copy()
-        femmes_list = [f for f in femmes]  # Convertir en liste si nécessaire
+        femmes_list = femmes.copy()
         
         # Mélanger les deux listes aléatoirement
         random.shuffle(hommes_list)
@@ -69,7 +69,7 @@ class AssociationService:
             femme = femmes_list.pop()
             
             # Enregistrer dans la base de données
-            store.add_association(homme, femme)
+            store.add_couple("H-F", homme, femme)
             
             couples.append({
                 "type": "H-F",
@@ -82,8 +82,8 @@ class AssociationService:
             femme1 = femmes_list.pop()
             femme2 = femmes_list.pop()
             
-            # Pour les associations F-F, on utilise femme1 comme "participant" fictif
-            # On ne les stocke pas en DB car le schéma ne le supporte pas
+            store.add_couple("F-F", femme1, femme2)
+            
             couples.append({
                 "type": "F-F",
                 "personne1": femme1,
@@ -94,6 +94,8 @@ class AssociationService:
         while len(hommes_list) >= 2:
             homme1 = hommes_list.pop()
             homme2 = hommes_list.pop()
+            
+            store.add_couple("H-H", homme1, homme2)
             
             couples.append({
                 "type": "H-H",
@@ -106,7 +108,6 @@ class AssociationService:
         hf_count = sum(1 for c in couples if c['type'] == 'H-F')
         ff_count = sum(1 for c in couples if c['type'] == 'F-F')
         hh_count = sum(1 for c in couples if c['type'] == 'H-H')
-        personnes_associees = (hf_count * 2) + (ff_count * 2) + (hh_count * 2)
         personnes_restantes = len(femmes_list) + len(hommes_list)
         
         return {
@@ -132,11 +133,11 @@ class AssociationService:
         Returns:
             tuple: (bool, str) - (est_possible, message)
         """
-        hommes = store.get_unassociated_participants()
-        femmes = store.get_unassociated_gifts()
+        hommes = store.get_hommes_numeros()
+        femmes = store.get_femmes_numeros()
         
         if not hommes and not femmes:
-            return False, "Aucune personne non associée disponible"
+            return False, "Aucune personne disponible"
         
         return True, f"Association possible: {len(hommes)} homme(s) et {len(femmes)} femme(s)"
 

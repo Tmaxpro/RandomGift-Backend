@@ -1,5 +1,6 @@
 """
 Configuration de la base de données et modèles SQLAlchemy.
+Terminologie: Homme (anciennement participant) et Femme (anciennement gift)
 """
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -61,91 +62,87 @@ class TokenBlocklist(db.Model):
         return f"<TokenBlocklist {self.jti}>"
 
 
-class Participant(db.Model):
+class Homme(db.Model):
     """
-    Modèle pour stocker les participants.
+    Modèle pour stocker les hommes (numéros).
     """
-    __tablename__ = 'participants'
+    __tablename__ = 'hommes'
     
     id = db.Column(db.Integer, primary_key=True)
-    participant = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    numero = db.Column(db.Integer, unique=True, nullable=False, index=True)
     is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
-    # Relation avec Association
-    association = db.relationship('Association', backref='participant_obj', uselist=False, cascade='all, delete-orphan')
-    
     def __repr__(self):
-        return f"<Participant {self.participant}>"
+        return f"<Homme {self.numero}>"
     
     def to_dict(self):
         """Convertir en dictionnaire."""
-        associated_gift = None
-        if self.association and not self.association.is_archived:
-            associated_gift = self.association.gift
-        
         return {
-            "participant": self.participant,
-            "associated": self.association is not None and not self.association.is_archived,
-            "gift": associated_gift,
+            "numero": self.numero,
             "is_archived": self.is_archived,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
 
 
-class Gift(db.Model):
+class Femme(db.Model):
     """
-    Modèle pour stocker les cadeaux.
+    Modèle pour stocker les femmes (numéros).
     """
-    __tablename__ = 'gifts'
+    __tablename__ = 'femmes'
     
     id = db.Column(db.Integer, primary_key=True)
-    gift = db.Column(db.Integer, unique=True, nullable=False, index=True)
+    numero = db.Column(db.Integer, unique=True, nullable=False, index=True)
     is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
-    # Relation avec Association
-    association = db.relationship('Association', backref='gift_obj', uselist=False, cascade='all, delete-orphan')
-    
     def __repr__(self):
-        return f"<Gift {self.gift}>"
+        return f"<Femme {self.numero}>"
     
     def to_dict(self):
         """Convertir en dictionnaire."""
         return {
-            "gift": self.gift,
-            "associated": self.association is not None and not self.association.is_archived,
+            "numero": self.numero,
             "is_archived": self.is_archived,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
 
 
-class Association(db.Model):
+class Couple(db.Model):
     """
-    Modèle pour stocker les associations entre participants et cadeaux.
+    Modèle pour stocker les associations/couples.
+    Types: H-F (homme-femme), H-H (homme-homme), F-F (femme-femme)
     """
-    __tablename__ = 'associations'
+    __tablename__ = 'couples'
     
     id = db.Column(db.Integer, primary_key=True)
-    participant = db.Column(db.String(255), db.ForeignKey('participants.participant', ondelete='CASCADE'), unique=True, nullable=False, index=True)
-    gift = db.Column(db.Integer, db.ForeignKey('gifts.gift', ondelete='CASCADE'), unique=True, nullable=False, index=True)
+    type_couple = db.Column(db.String(5), nullable=False, index=True)  # 'H-F', 'H-H', 'F-F'
+    personne1 = db.Column(db.Integer, nullable=False)
+    personne2 = db.Column(db.Integer, nullable=False)
     is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     def __repr__(self):
-        return f"<Association {self.participant} -> {self.gift}>"
+        return f"<Couple {self.type_couple}: {self.personne1} - {self.personne2}>"
     
     def to_dict(self):
         """Convertir en dictionnaire."""
         return {
-            "participant": self.participant,
-            "gift": self.gift,
+            "type": self.type_couple,
+            "personne1": self.personne1,
+            "personne2": self.personne2,
             "is_archived": self.is_archived,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+# Aliases pour compatibilité avec les anciennes routes
+Participant = Homme  # Pour /participants
+Gift = Femme  # Pour /gifts
+Association = Couple  # Pour les exports et autres

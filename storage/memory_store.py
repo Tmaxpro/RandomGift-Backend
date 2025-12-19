@@ -1,310 +1,311 @@
 """
 Module de stockage en base de données pour l'application d'association.
-Gère les participants, cadeaux et leurs associations avec SQLite.
+Gère les hommes, femmes et leurs associations (couples).
 """
-from storage.database import db, Participant, Gift, Association
+from storage.database import db, Homme, Femme, Couple
 
 
 class DatabaseStore:
     """
     Classe pour gérer le stockage en base de données des données.
+    Terminologie: Homme et Femme (représentés par des numéros)
     """
     
-    def add_participant(self, participant):
+    # ==================== GESTION DES HOMMES ====================
+    
+    def add_homme(self, numero):
         """
-        Ajoute un participant à la base de données s'il n'existe pas déjà.
+        Ajoute un homme à la base de données s'il n'existe pas déjà.
         
         Args:
-            participant (str): Le participant à ajouter
+            numero (int): Le numéro de l'homme à ajouter
             
         Returns:
             bool: True si ajouté, False si déjà existant
         """
-        existing = Participant.query.filter_by(participant=participant, is_archived=False).first()
+        existing = Homme.query.filter_by(numero=numero, is_archived=False).first()
         if existing:
             return False
         
-        new_participant = Participant(participant=participant)
-        db.session.add(new_participant)
+        new_homme = Homme(numero=numero)
+        db.session.add(new_homme)
         db.session.commit()
         return True
     
-    def add_participants_bulk(self, participants):
+    def add_hommes_bulk(self, numeros):
         """
-        Ajoute plusieurs participants en une seule opération.
+        Ajoute plusieurs hommes en une seule opération.
         
         Args:
-            participants (list): Liste des participants à ajouter
+            numeros (list): Liste des numéros à ajouter
             
         Returns:
-            dict: Résultat avec participants ajoutés et ignorés
+            dict: Résultat avec hommes ajoutés et ignorés
         """
         added = []
         ignored = []
         
-        for participant in participants:
-            if self.add_participant(participant):
-                added.append(participant)
+        for numero in numeros:
+            if self.add_homme(numero):
+                added.append(numero)
             else:
-                ignored.append(participant)
+                ignored.append(numero)
         
         return {"added": added, "ignored": ignored}
     
-    def remove_participant(self, participant):
+    def remove_homme(self, numero):
         """
-        Archive un participant (soft delete) et son association éventuelle.
+        Archive un homme (soft delete).
         
         Args:
-            participant (str): Le participant à archiver
+            numero (int): Le numéro de l'homme à archiver
             
         Returns:
             bool: True si archivé, False si non trouvé
         """
-        participant_obj = Participant.query.filter_by(participant=participant, is_archived=False).first()
-        if not participant_obj:
+        homme = Homme.query.filter_by(numero=numero, is_archived=False).first()
+        if not homme:
             return False
         
-        # Archiver le participant
-        participant_obj.is_archived = True
-        
-        # Archiver son association si elle existe
-        association = Association.query.filter_by(participant=participant, is_archived=False).first()
-        if association:
-            association.is_archived = True
-        
+        homme.is_archived = True
         db.session.commit()
         return True
     
-    def get_participants(self):
+    def get_hommes(self):
         """
-        Retourne tous les participants non archivés avec leur statut d'association.
+        Retourne tous les hommes non archivés.
         
         Returns:
-            list: Liste de dictionnaires avec participant et statut
+            list: Liste de dictionnaires avec les données des hommes
         """
-        participants = Participant.query.filter_by(is_archived=False).all()
-        return [participant.to_dict() for participant in participants]
+        hommes = Homme.query.filter_by(is_archived=False).all()
+        return [homme.to_dict() for homme in hommes]
     
-    def add_gift(self, gift):
+    def get_hommes_numeros(self):
         """
-        Ajoute un cadeau à la base de données s'il n'existe pas déjà.
+        Retourne uniquement les numéros des hommes non archivés.
+        
+        Returns:
+            list: Liste des numéros
+        """
+        hommes = Homme.query.filter_by(is_archived=False).all()
+        return [homme.numero for homme in hommes]
+    
+    # ==================== GESTION DES FEMMES ====================
+    
+    def add_femme(self, numero):
+        """
+        Ajoute une femme à la base de données si elle n'existe pas déjà.
         
         Args:
-            gift (int): Le cadeau à ajouter
+            numero (int): Le numéro de la femme à ajouter
             
         Returns:
-            bool: True si ajouté, False si déjà existant
+            bool: True si ajoutée, False si déjà existante
         """
-        existing = Gift.query.filter_by(gift=gift, is_archived=False).first()
+        existing = Femme.query.filter_by(numero=numero, is_archived=False).first()
         if existing:
             return False
         
-        new_gift = Gift(gift=gift)
-        db.session.add(new_gift)
+        new_femme = Femme(numero=numero)
+        db.session.add(new_femme)
         db.session.commit()
         return True
     
-    def add_gifts_bulk(self, gifts):
+    def add_femmes_bulk(self, numeros):
         """
-        Ajoute plusieurs cadeaux en une seule opération.
+        Ajoute plusieurs femmes en une seule opération.
         
         Args:
-            gifts (list): Liste des cadeaux à ajouter
+            numeros (list): Liste des numéros à ajouter
             
         Returns:
-            dict: Résultat avec cadeaux ajoutés et ignorés
+            dict: Résultat avec femmes ajoutées et ignorées
         """
         added = []
         ignored = []
         
-        for gift in gifts:
-            if self.add_gift(gift):
-                added.append(gift)
+        for numero in numeros:
+            if self.add_femme(numero):
+                added.append(numero)
             else:
-                ignored.append(gift)
+                ignored.append(numero)
         
         return {"added": added, "ignored": ignored}
     
-    def remove_gift(self, gift):
+    def remove_femme(self, numero):
         """
-        Archive un cadeau (soft delete) et son association éventuelle.
+        Archive une femme (soft delete).
         
         Args:
-            gift (int): Le cadeau à archiver
-            
-        Returns:
-            bool: True si archivé, False si non trouvé
-        """
-        gift_obj = Gift.query.filter_by(gift=gift, is_archived=False).first()
-        if not gift_obj:
-            return False
-        
-        # Archiver le cadeau
-        gift_obj.is_archived = True
-        
-        # Archiver son association si elle existe
-        association = Association.query.filter_by(gift=gift, is_archived=False).first()
-        if association:
-            association.is_archived = True
-        
-        db.session.commit()
-        return True
-    
-    def get_gifts(self):
-        """
-        Retourne tous les cadeaux non archivés avec leur statut d'association.
-        
-        Returns:
-            list: Liste de dictionnaires avec cadeau et statut
-        """
-        gifts = Gift.query.filter_by(is_archived=False).all()
-        return [gift.to_dict() for gift in gifts]
-    
-    def get_unassociated_participants(self):
-        """
-        Retourne les participants non encore associés et non archivés.
-        
-        Returns:
-            list: Liste des participants non associés
-        """
-        # Requête pour trouver les participants non archivés sans association non archivée
-        participants = Participant.query.filter_by(is_archived=False).outerjoin(
-            Association, 
-            (Participant.participant == Association.participant) & (Association.is_archived == False)
-        ).filter(Association.id == None).all()
-        return [participant.participant for participant in participants]
-    
-    def get_unassociated_gifts(self):
-        """
-        Retourne les cadeaux non encore associés et non archivés.
-        
-        Returns:
-            list: Liste des cadeaux non associés
-        """
-        # Requête pour trouver les cadeaux non archivés sans association non archivée
-        gifts = Gift.query.filter_by(is_archived=False).outerjoin(
-            Association,
-            (Gift.gift == Association.gift) & (Association.is_archived == False)
-        ).filter(Association.id == None).all()
-        return [gift.gift for gift in gifts]
-    
-    def add_association(self, participant, gift):
-        """
-        Crée une association entre un participant et un cadeau.
-        
-        Args:
-            participant (str): Le participant
-            gift (int): Le cadeau
-            
-        Returns:
-            bool: True si créée, False si déjà existante
-        """
-        existing = Association.query.filter_by(participant=participant, is_archived=False).first()
-        if existing:
-            return False
-        
-        new_association = Association(participant=participant, gift=gift)
-        db.session.add(new_association)
-        db.session.commit()
-        return True
-    
-    def remove_association(self, participant):
-        """
-        Archive l'association d'un participant (soft delete).
-        
-        Args:
-            participant (str): Le participant dont l'association doit être archivée
+            numero (int): Le numéro de la femme à archiver
             
         Returns:
             bool: True si archivée, False si non trouvée
         """
-        association = Association.query.filter_by(participant=participant, is_archived=False).first()
-        if not association:
+        femme = Femme.query.filter_by(numero=numero, is_archived=False).first()
+        if not femme:
             return False
         
-        association.is_archived = True
+        femme.is_archived = True
         db.session.commit()
         return True
     
-    def get_associations(self):
+    def get_femmes(self):
         """
-        Retourne toutes les associations non archivées.
+        Retourne toutes les femmes non archivées.
         
         Returns:
-            dict: Dictionnaire des associations {participant: cadeau}
+            list: Liste de dictionnaires avec les données des femmes
         """
-        associations = Association.query.filter_by(is_archived=False).all()
-        return {assoc.participant: assoc.gift for assoc in associations}
+        femmes = Femme.query.filter_by(is_archived=False).all()
+        return [femme.to_dict() for femme in femmes]
+    
+    def get_femmes_numeros(self):
+        """
+        Retourne uniquement les numéros des femmes non archivées.
+        
+        Returns:
+            list: Liste des numéros
+        """
+        femmes = Femme.query.filter_by(is_archived=False).all()
+        return [femme.numero for femme in femmes]
+    
+    # ==================== GESTION DES COUPLES ====================
+    
+    def add_couple(self, type_couple, personne1, personne2):
+        """
+        Crée un couple/association.
+        
+        Args:
+            type_couple (str): Type de couple ('H-F', 'H-H', 'F-F')
+            personne1 (int): Numéro de la première personne
+            personne2 (int): Numéro de la deuxième personne
+            
+        Returns:
+            bool: True si créé
+        """
+        new_couple = Couple(
+            type_couple=type_couple,
+            personne1=personne1,
+            personne2=personne2
+        )
+        db.session.add(new_couple)
+        db.session.commit()
+        return True
+    
+    def get_couples(self):
+        """
+        Retourne tous les couples non archivés.
+        
+        Returns:
+            list: Liste des couples
+        """
+        couples = Couple.query.filter_by(is_archived=False).all()
+        return [couple.to_dict() for couple in couples]
     
     def get_status(self):
         """
-        Retourne l'état complet du système (seulement éléments non archivés).
+        Retourne l'état complet du système.
         
         Returns:
             dict: Statistiques et détails des données
         """
-        all_participants = Participant.query.filter_by(is_archived=False).all()
-        all_gifts = Gift.query.filter_by(is_archived=False).all()
-        all_associations = Association.query.filter_by(is_archived=False).all()
+        all_hommes = Homme.query.filter_by(is_archived=False).all()
+        all_femmes = Femme.query.filter_by(is_archived=False).all()
+        all_couples = Couple.query.filter_by(is_archived=False).all()
         
-        associated_participants = [assoc.participant for assoc in all_associations]
-        associated_gifts = [assoc.gift for assoc in all_associations]
-        
-        unassociated_participants = [participant.participant for participant in all_participants if participant.participant not in associated_participants]
-        unassociated_gifts = [gift.gift for gift in all_gifts if gift.gift not in associated_gifts]
+        # Compter les types de couples
+        hf_count = sum(1 for c in all_couples if c.type_couple == 'H-F')
+        hh_count = sum(1 for c in all_couples if c.type_couple == 'H-H')
+        ff_count = sum(1 for c in all_couples if c.type_couple == 'F-F')
         
         return {
-            "participants": {
-                "total": len(all_participants),
-                "associated": len(associated_participants),
-                "unassociated": len(unassociated_participants),
-                "list_associated": associated_participants,
-                "list_unassociated": unassociated_participants
+            "hommes": {
+                "total": len(all_hommes),
+                "list": [h.numero for h in all_hommes]
             },
-            "gifts": {
-                "total": len(all_gifts),
-                "associated": len(associated_gifts),
-                "unassociated": len(unassociated_gifts),
-                "list_associated": associated_gifts,
-                "list_unassociated": unassociated_gifts
+            "femmes": {
+                "total": len(all_femmes),
+                "list": [f.numero for f in all_femmes]
             },
-            "associations": {
-                "total": len(all_associations),
-                "details": {assoc.participant: assoc.gift for assoc in all_associations}
+            "couples": {
+                "total": len(all_couples),
+                "H-F": hf_count,
+                "H-H": hh_count,
+                "F-F": ff_count,
+                "details": [c.to_dict() for c in all_couples]
             }
         }
     
     def reset(self):
         """Réinitialise toutes les données."""
-        # Supprimer toutes les associations d'abord (à cause des contraintes de clés étrangères)
-        Association.query.delete()
-        # Puis supprimer les participants et cadeaux
-        Participant.query.delete()
-        Gift.query.delete()
+        Couple.query.delete()
+        Homme.query.delete()
+        Femme.query.delete()
         db.session.commit()
     
-    def reset_associations(self):
-        """Réinitialise uniquement les associations (les participants et cadeaux sont conservés)."""
-        associations_count = Association.query.filter_by(is_archived=False).count()
-        # Supprimer toutes les associations non archivées (hard delete pour permettre la réattribution)
-        Association.query.filter_by(is_archived=False).delete()
+    def reset_couples(self):
+        """Réinitialise uniquement les couples."""
+        couples_count = Couple.query.filter_by(is_archived=False).count()
+        Couple.query.filter_by(is_archived=False).delete()
         db.session.commit()
-        return associations_count
+        return couples_count
+    
+    # ==================== PROPRIÉTÉS DE COMPATIBILITÉ ====================
+    
+    @property
+    def hommes(self):
+        """Retourne la liste des numéros d'hommes."""
+        return self.get_hommes_numeros()
+    
+    @property
+    def femmes(self):
+        """Retourne la liste des numéros de femmes."""
+        return self.get_femmes_numeros()
+    
+    # Aliases pour compatibilité avec les anciennes routes
+    def add_participant(self, numero):
+        """Alias pour add_homme (compatibilité route /participants)."""
+        return self.add_homme(int(numero) if isinstance(numero, str) and numero.isdigit() else numero)
+    
+    def add_participants_bulk(self, numeros):
+        """Alias pour add_hommes_bulk."""
+        return self.add_hommes_bulk(numeros)
+    
+    def remove_participant(self, numero):
+        """Alias pour remove_homme."""
+        return self.remove_homme(int(numero) if isinstance(numero, str) and numero.isdigit() else numero)
+    
+    def get_participants(self):
+        """Alias pour get_hommes."""
+        return self.get_hommes()
+    
+    def add_gift(self, numero):
+        """Alias pour add_femme (compatibilité route /gifts)."""
+        return self.add_femme(numero)
+    
+    def add_gifts_bulk(self, numeros):
+        """Alias pour add_femmes_bulk."""
+        return self.add_femmes_bulk(numeros)
+    
+    def remove_gift(self, numero):
+        """Alias pour remove_femme."""
+        return self.remove_femme(numero)
+    
+    def get_gifts(self):
+        """Alias pour get_femmes."""
+        return self.get_femmes()
     
     @property
     def participants(self):
-        """Propriété pour compatibilité - retourne la liste des participants non archivés."""
-        return [participant.participant for participant in Participant.query.filter_by(is_archived=False).all()]
+        """Alias pour hommes."""
+        return self.hommes
     
     @property
     def gifts(self):
-        """Propriété pour compatibilité - retourne la liste des cadeaux non archivés."""
-        return [gift.gift for gift in Gift.query.filter_by(is_archived=False).all()]
-    
-    @property
-    def associations(self):
-        """Propriété pour compatibilité - retourne le dictionnaire des associations."""
-        return self.get_associations()
+        """Alias pour femmes."""
+        return self.femmes
 
 
 # Instance du store

@@ -84,22 +84,21 @@ def create_app():
                     "GET /auth/me": "Obtenir les informations de l'utilisateur connecté (requiert authentification)"
                 },
                 "hommes": {
-                    "POST /participants": "Ajouter un homme (requiert authentification)",
-                    "POST /participants/bulk": "Ajouter plusieurs hommes via fichier CSV ou Excel (requiert authentification)",
-                    "GET /participants": "Lister tous les hommes (requiert authentification)",
-                    "DELETE /participants/<participant>": "Supprimer un homme (requiert authentification)"
+                    "POST /participants": "Ajouter un homme (numéro) (requiert authentification)",
+                    "POST /participants/bulk": "Ajouter plusieurs hommes via JSON ou fichier CSV/Excel (requiert authentification)",
+                    "GET /participants": "Lister tous les hommes",
+                    "DELETE /participants/<numero>": "Supprimer un homme (requiert authentification)"
                 },
                 "femmes": {
                     "POST /gifts": "Ajouter une femme (numéro) (requiert authentification)",
-                    "POST /gifts/bulk": "Ajouter plusieurs femmes via fichier CSV ou Excel (requiert authentification)",
-                    "GET /gifts": "Lister toutes les femmes (requiert authentification)",
-                    "DELETE /gifts/<gift>": "Supprimer une femme (requiert authentification)"
+                    "POST /gifts/bulk": "Ajouter plusieurs femmes via JSON ou fichier CSV/Excel (requiert authentification)",
+                    "GET /gifts": "Lister toutes les femmes",
+                    "DELETE /gifts/<numero>": "Supprimer une femme (requiert authentification)"
                 },
                 "associations": {
-                    "POST /associate": "Associer hommes et femmes (H-F prioritaire, puis même genre) (requiert authentification)",
-                    "POST /api/associate": "Associer via JSON direct {femmes: [], hommes: []} (stateless) (requiert authentification)",
-                    "GET /associations": "Lister toutes les associations (requiert authentification)",
-                    "DELETE /associations/<participant>": "Supprimer une association (requiert authentification)"
+                    "POST /associate": "Créer les couples (H-F prioritaire, puis même genre) (requiert authentification)",
+                    "GET /associations": "Lister tous les couples",
+                    "DELETE /associations/reset": "Réinitialiser tous les couples (requiert authentification)"
                 },
                 "export": {
                     "GET /export/csv": "Exporter les associations en CSV (requiert authentification)",

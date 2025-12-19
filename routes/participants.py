@@ -1,5 +1,5 @@
 """
-Routes pour la gestion des participants.
+Routes pour la gestion des hommes (via /participants pour compatibilité).
 """
 import pandas as pd
 import io
@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from storage.memory_store import store
 from utils.auth import token_required
 
-# Créer le Blueprint pour les routes des participants
+# Créer le Blueprint pour les routes des hommes (participants)
 participants_bp = Blueprint('participants', __name__)
 
 
@@ -15,11 +15,11 @@ participants_bp = Blueprint('participants', __name__)
 @token_required
 def add_participant():
     """
-    Ajoute un participant unique.
+    Ajoute un homme (numéro).
     
     Body JSON attendu:
         {
-            "participant": "Alice"
+            "numero": 10
         }
     
     Returns:
@@ -27,35 +27,37 @@ def add_participant():
     """
     data = request.get_json()
     
-    # Validation des données
-    if not data or 'participant' not in data:
+    # Validation des données - accepter 'numero' ou 'participant' pour compatibilité
+    numero = data.get('numero') if data else None
+    if numero is None:
+        numero = data.get('participant') if data else None
+    
+    if numero is None:
         return jsonify({
             "success": False,
-            "error": "Le champ 'participant' est requis"
+            "error": "Le champ 'numero' est requis"
         }), 400
     
-    participant = data['participant']
-    
-    # Validation du type
-    if not isinstance(participant, str) or not participant.strip():
+    # Validation du type (doit être un nombre)
+    if not isinstance(numero, (int, float)):
         return jsonify({
             "success": False,
-            "error": "Le participant doit être une chaîne non vide"
+            "error": "Le numéro doit être un nombre"
         }), 400
     
-    participant = participant.strip()
+    numero = int(numero)
     
-    # Ajouter le participant
-    if store.add_participant(participant):
+    # Ajouter l'homme
+    if store.add_homme(numero):
         return jsonify({
             "success": True,
-            "message": f"Participant '{participant}' ajouté avec succès",
-            "participant": participant
+            "message": f"Homme {numero} ajouté avec succès",
+            "numero": numero
         }), 201
     else:
         return jsonify({
             "success": False,
-            "error": f"Le participant '{participant}' existe déjà"
+            "error": f"L'homme {numero} existe déjà"
         }), 400
 
 
@@ -63,23 +65,23 @@ def add_participant():
 @token_required
 def add_participants_bulk():
     """
-    Ajoute plusieurs participants en une seule opération.
+    Ajoute plusieurs hommes (numéros) en une seule opération.
     
     Deux modes d'envoi possibles:
     
     1. Via fichier CSV/Excel (form-data):
-        - Le fichier doit contenir une colonne nommée 'participant' ou 'name'
+        - Le fichier doit contenir une colonne nommée 'numero' ou 'homme'
         - Formats acceptés: .csv, .xlsx, .xls
         - Form-data: file: fichier CSV ou Excel
     
     2. Via liste JSON (application/json):
         - Body JSON attendu:
             {
-                "participants": ["Alice", "Bob", "Charlie"]
+                "numeros": [10, 11, 12]
             }
     
     Returns:
-        JSON: Liste des participants ajoutés et ignorés
+        JSON: Liste des hommes ajoutés et ignorés
     """
     # Mode 1: Vérifier si c'est une requête JSON avec une liste
     if request.is_json:
@@ -91,42 +93,40 @@ def add_participants_bulk():
                 "error": "Données JSON invalides"
             }), 400
         
-        # Chercher la liste de participants
-        participants_list = None
-        for key in ['participants', 'participant', 'names', 'name', 'noms', 'nom']:
+        # Chercher la liste de numéros
+        numeros_list = None
+        for key in ['numeros', 'numero', 'hommes', 'homme', 'participants']:
             if key in data and isinstance(data[key], list):
-                participants_list = data[key]
+                numeros_list = data[key]
                 break
         
-        if participants_list is None:
+        if numeros_list is None:
             return jsonify({
                 "success": False,
-                "error": "Le champ 'participants' doit être une liste. Ex: {\"participants\": [\"Alice\", \"Bob\"]}"
+                "error": "Le champ 'numeros' doit être une liste. Ex: {\"numeros\": [10, 11, 12]}"
             }), 400
         
-        # Nettoyer et valider les participants
-        cleaned_participants = []
-        for value in participants_list:
-            if value is not None:
-                participant = str(value).strip()
-                if participant:
-                    cleaned_participants.append(participant)
+        # Valider et convertir les numéros
+        cleaned_numeros = []
+        for value in numeros_list:
+            if value is not None and isinstance(value, (int, float)):
+                cleaned_numeros.append(int(value))
         
-        if not cleaned_participants:
+        if not cleaned_numeros:
             return jsonify({
                 "success": False,
-                "error": "Aucun participant valide dans la liste"
+                "error": "Aucun numéro valide dans la liste"
             }), 400
         
-        # Ajouter les participants
-        result = store.add_participants_bulk(cleaned_participants)
+        # Ajouter les hommes
+        result = store.add_hommes_bulk(cleaned_numeros)
         
         return jsonify({
             "success": True,
-            "message": f"{len(result['added'])} participant(s) ajouté(s), {len(result['ignored'])} ignoré(s)",
+            "message": f"{len(result['added'])} homme(s) ajouté(s), {len(result['ignored'])} ignoré(s)",
             "added": result['added'],
             "ignored": result['ignored'],
-            "total_processed": len(cleaned_participants)
+            "total_processed": len(cleaned_numeros)
         }), 201
     
     # Mode 2: Via fichier CSV/Excel
@@ -161,44 +161,45 @@ def add_participants_bulk():
         else:  # .xlsx ou .xls
             df = pd.read_excel(io.BytesIO(file.read()))
         
-        # Chercher la colonne des participants
-        participant_col = None
+        # Chercher la colonne des numéros
+        numero_col = None
         for col in df.columns:
             col_lower = col.lower().strip()
-            if col_lower in ['participant', 'participants', 'name', 'nom']:
-                participant_col = col
+            if col_lower in ['numero', 'numeros', 'homme', 'hommes', 'participant', 'participants']:
+                numero_col = col
                 break
         
-        if participant_col is None:
+        if numero_col is None:
             return jsonify({
                 "success": False,
-                "error": "Aucune colonne 'participant' ou 'name' trouvée dans le fichier",
+                "error": "Aucune colonne 'numero' ou 'homme' trouvée dans le fichier",
                 "columns_found": list(df.columns)
             }), 400
         
-        # Extraire et nettoyer les participants
-        cleaned_participants = []
-        for value in df[participant_col]:
+        # Extraire et valider les numéros
+        cleaned_numeros = []
+        for value in df[numero_col]:
             if pd.notna(value):  # Ignorer les valeurs NaN
-                participant = str(value).strip()
-                if participant:
-                    cleaned_participants.append(participant)
+                try:
+                    cleaned_numeros.append(int(value))
+                except (ValueError, TypeError):
+                    pass  # Ignorer les valeurs non numériques
         
-        if not cleaned_participants:
+        if not cleaned_numeros:
             return jsonify({
                 "success": False,
-                "error": "Aucun participant valide trouvé dans le fichier"
+                "error": "Aucun numéro valide trouvé dans le fichier"
             }), 400
         
-        # Ajouter les participants
-        result = store.add_participants_bulk(cleaned_participants)
+        # Ajouter les hommes
+        result = store.add_hommes_bulk(cleaned_numeros)
         
         return jsonify({
             "success": True,
-            "message": f"{len(result['added'])} participant(s) ajouté(s), {len(result['ignored'])} ignoré(s)",
+            "message": f"{len(result['added'])} homme(s) ajouté(s), {len(result['ignored'])} ignoré(s)",
             "added": result['added'],
             "ignored": result['ignored'],
-            "total_processed": len(cleaned_participants)
+            "total_processed": len(cleaned_numeros)
         }), 201
     
     except Exception as e:
@@ -212,42 +213,42 @@ def add_participants_bulk():
 @participants_bp.route('/participants', methods=['GET'])
 def get_participants():
     """
-    Récupère tous les participants.
+    Récupère tous les hommes (numéros).
     
     Returns:
-        JSON: Liste des noms de participants et le total
+        JSON: Liste des numéros d'hommes et le total
     """
-    participants_data = store.get_participants()
-    # Extraire juste les noms des participants
-    participants_list = [p['participant'] for p in participants_data]
+    hommes_data = store.get_hommes()
+    # Extraire juste les numéros
+    hommes_list = [h['numero'] for h in hommes_data]
     
     return jsonify({
         "success": True,
-        "total": len(participants_list),
-        "participants": participants_list
+        "total": len(hommes_list),
+        "hommes": hommes_list
     }), 200
 
 
-@participants_bp.route('/participants/<string:participant>', methods=['DELETE'])
+@participants_bp.route('/participants/<int:numero>', methods=['DELETE'])
 @token_required
-def delete_participant(participant):
+def delete_participant(numero):
     """
-    Supprime un participant et son association éventuelle.
+    Supprime un homme (numéro).
     
     Args:
-        participant (str): Le participant à supprimer
+        numero (int): Le numéro de l'homme à supprimer
     
     Returns:
         JSON: Confirmation de la suppression ou erreur
     """
-    # Supprimer le participant
-    if store.remove_participant(participant):
+    # Supprimer l'homme
+    if store.remove_homme(numero):
         return jsonify({
             "success": True,
-            "message": f"Participant '{participant}' supprimé avec succès (ainsi que son association éventuelle)"
+            "message": f"Homme {numero} supprimé avec succès"
         }), 200
     else:
         return jsonify({
             "success": False,
-            "error": f"Le participant '{participant}' n'existe pas"
+            "error": f"L'homme {numero} n'existe pas"
         }), 404
