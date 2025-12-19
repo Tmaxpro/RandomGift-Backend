@@ -131,8 +131,8 @@ class Association(db.Model):
     __tablename__ = 'associations'
     
     id = db.Column(db.Integer, primary_key=True)
-    participant = db.Column(db.String(255), db.ForeignKey('participants.participant', ondelete='CASCADE'), unique=True, nullable=False, index=True)
-    gift = db.Column(db.Integer, db.ForeignKey('gifts.gift', ondelete='CASCADE'), unique=True, nullable=False, index=True)
+    participant = db.Column(db.String(255), db.ForeignKey('participants.participant', ondelete='CASCADE'), nullable=False, index=True)
+    gift = db.Column(db.Integer, db.ForeignKey('gifts.gift', ondelete='CASCADE'), nullable=False, index=True)
     is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
