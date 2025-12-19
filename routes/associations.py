@@ -12,7 +12,7 @@ associations_bp = Blueprint('associations', __name__)
 
 @associations_bp.route('/associate', methods=['POST'])
 @token_required
-def create_associations(current_user):
+def create_associations():
     """
     Crée des associations aléatoires entre participants et cadeaux non associés.
     
@@ -60,7 +60,7 @@ def get_associations():
 
 @associations_bp.route('/associations/<string:participant>', methods=['DELETE'])
 @token_required
-def delete_association(current_user, participant):
+def delete_association(participant):
     """
     Supprime l'association d'un participant.
     Le cadeau redevient disponible pour de nouvelles associations.

@@ -20,7 +20,7 @@ export_bp = Blueprint('export', __name__)
 
 @export_bp.route('/export/csv', methods=['GET'])
 @token_required
-def export_csv(current_user):
+def export_csv():
     """
     Exporte toutes les associations non archivées en format CSV.
     
@@ -58,7 +58,7 @@ def export_csv(current_user):
 
 @export_bp.route('/export/pdf', methods=['GET'])
 @token_required
-def export_pdf(current_user):
+def export_pdf():
     """
     Exporte toutes les associations non archivées en format PDF.
     
