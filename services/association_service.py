@@ -1,73 +1,127 @@
 """
-Service gérant la logique d'association aléatoire entre participants et cadeaux.
+Service gérant la logique d'association aléatoire entre hommes et femmes.
+Remplace l'ancien système participants/cadeaux.
 """
 import random
+from datetime import datetime
 from storage.memory_store import store
 
 
 class AssociationService:
     """
-    Service pour gérer les associations aléatoires entre participants et cadeaux.
+    Service pour gérer les associations aléatoires entre hommes et femmes.
+    
+    Règles:
+    - Priorité: associer 1 homme + 1 femme tant que possible
+    - Ensuite: associer les personnes restantes du même genre (F-F ou H-H)
+    - Aucun numéro ne peut apparaître dans plus d'un couple
     """
     
     @staticmethod
     def create_random_associations():
         """
-        Crée des associations aléatoires entre participants et cadeaux non associés.
+        Crée des associations aléatoires entre hommes (participants) et femmes (gifts).
         
-        Règles:
-        - Seuls les participants et cadeaux non associés sont utilisés
-        - Chaque cadeau disponible est associé à un participant aléatoire
-        - Si il y a plus de participants que de cadeaux, seuls certains participants seront associés
-        - Les associations existantes ne sont jamais modifiées
+        Algorithme:
+        1. Récupérer les hommes (participants) et femmes (gifts) non associés
+        2. Mélanger les deux listes aléatoirement
+        3. Associer H-F tant que les deux listes contiennent des éléments
+        4. Associer les femmes restantes entre elles (F-F)
+        5. Associer les hommes restants entre eux (H-H)
         
         Returns:
-            dict: Résultat de l'opération avec nouvelles associations et total
+            dict: Résultat de l'opération avec les couples créés
         """
-        # Récupérer les éléments non associés
-        unassociated_participants = store.get_unassociated_participants()
-        unassociated_gifts = store.get_unassociated_gifts()
+        # Récupérer les hommes (participants) et femmes (gifts) non associés
+        hommes = store.get_unassociated_participants()
+        femmes = store.get_unassociated_gifts()
         
         # Vérifier qu'il y a des éléments à associer
-        if not unassociated_participants:
+        if not hommes and not femmes:
             return {
                 "success": True,
-                "message": "Aucun participant à associer",
-                "new_associations": [],
-                "total_associations": store.get_associations()
+                "message": "Aucune personne à associer",
+                "timestamp": datetime.now().isoformat(timespec='seconds'),
+                "couples": [],
+                "statistiques": {
+                    "total_personnes": 0,
+                    "total_couples": 0,
+                    "couples_H-F": 0,
+                    "couples_F-F": 0,
+                    "couples_H-H": 0,
+                    "personnes_non_associees": 0
+                }
             }
         
-        if not unassociated_gifts:
-            return {
-                "success": False,
-                "message": "Aucun cadeau disponible pour l'association",
-                "new_associations": [],
-                "total_associations": store.get_associations()
-            }
+        # Copier les listes pour ne pas modifier les originales
+        hommes_list = hommes.copy()
+        femmes_list = [f for f in femmes]  # Convertir en liste si nécessaire
         
-        # Mélanger les participants pour choisir aléatoirement
-        shuffled_participants = unassociated_participants.copy()
-        random.shuffle(shuffled_participants)
+        # Mélanger les deux listes aléatoirement
+        random.shuffle(hommes_list)
+        random.shuffle(femmes_list)
         
-        # Créer les associations: on associe tous les cadeaux disponibles
-        # à des participants choisis aléatoirement
-        new_associations = []
-        num_associations = min(len(unassociated_gifts), len(unassociated_participants))
+        couples = []
         
-        for i in range(num_associations):
-            participant = shuffled_participants[i]
-            gift = unassociated_gifts[i]
-            store.add_association(participant, gift)
-            new_associations.append({
-                "participant": participant,
-                "gift": gift
+        # Étape 1: Associer H-F tant que possible
+        while hommes_list and femmes_list:
+            homme = hommes_list.pop()
+            femme = femmes_list.pop()
+            
+            # Enregistrer dans la base de données
+            store.add_association(homme, femme)
+            
+            couples.append({
+                "type": "H-F",
+                "personne1": homme,
+                "personne2": femme
             })
+        
+        # Étape 2: Associer les femmes restantes entre elles (F-F)
+        while len(femmes_list) >= 2:
+            femme1 = femmes_list.pop()
+            femme2 = femmes_list.pop()
+            
+            # Pour les associations F-F, on utilise femme1 comme "participant" fictif
+            # On ne les stocke pas en DB car le schéma ne le supporte pas
+            couples.append({
+                "type": "F-F",
+                "personne1": femme1,
+                "personne2": femme2
+            })
+        
+        # Étape 3: Associer les hommes restants entre eux (H-H)
+        while len(hommes_list) >= 2:
+            homme1 = hommes_list.pop()
+            homme2 = hommes_list.pop()
+            
+            couples.append({
+                "type": "H-H",
+                "personne1": homme1,
+                "personne2": homme2
+            })
+        
+        # Calculer les statistiques
+        total_initial = len(hommes) + len(femmes)
+        hf_count = sum(1 for c in couples if c['type'] == 'H-F')
+        ff_count = sum(1 for c in couples if c['type'] == 'F-F')
+        hh_count = sum(1 for c in couples if c['type'] == 'H-H')
+        personnes_associees = (hf_count * 2) + (ff_count * 2) + (hh_count * 2)
+        personnes_restantes = len(femmes_list) + len(hommes_list)
         
         return {
             "success": True,
-            "message": f"{len(new_associations)} nouvelle(s) association(s) créée(s)",
-            "new_associations": new_associations,
-            "total_associations": store.get_associations()
+            "message": f"{len(couples)} couple(s) créé(s)",
+            "timestamp": datetime.now().isoformat(timespec='seconds'),
+            "couples": couples,
+            "statistiques": {
+                "total_personnes": total_initial,
+                "total_couples": len(couples),
+                "couples_H-F": hf_count,
+                "couples_F-F": ff_count,
+                "couples_H-H": hh_count,
+                "personnes_non_associees": personnes_restantes
+            }
         }
     
     @staticmethod
@@ -78,16 +132,13 @@ class AssociationService:
         Returns:
             tuple: (bool, str) - (est_possible, message)
         """
-        unassociated_participants = store.get_unassociated_participants()
-        unassociated_gifts = store.get_unassociated_gifts()
+        hommes = store.get_unassociated_participants()
+        femmes = store.get_unassociated_gifts()
         
-        if not unassociated_participants:
-            return False, "Aucun participant non associé disponible"
+        if not hommes and not femmes:
+            return False, "Aucune personne non associée disponible"
         
-        if not unassociated_gifts:
-            return False, "Aucun cadeau non associé disponible"
-        
-        return True, f"Association possible: {len(unassociated_gifts)} cadeau(x) seront associés"
+        return True, f"Association possible: {len(hommes)} homme(s) et {len(femmes)} femme(s)"
 
 
 # Instance du service

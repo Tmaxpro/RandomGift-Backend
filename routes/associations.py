@@ -1,9 +1,10 @@
 """
-Routes pour la gestion des associations entre participants et cadeaux.
+Routes pour la gestion des associations entre hommes et femmes.
 """
 from flask import Blueprint, request, jsonify
 from storage.memory_store import store
 from services.association_service import association_service
+from services.gender_association_service import gender_association_service
 from utils.auth import token_required
 
 # Créer le Blueprint pour les routes des associations
@@ -14,22 +15,58 @@ associations_bp = Blueprint('associations', __name__)
 @token_required
 def create_associations():
     """
-    Crée des associations aléatoires entre participants et cadeaux non associés.
+    Crée des associations aléatoires entre hommes et femmes.
     
-    Règles:
-    - Seuls les participants et cadeaux non associés sont utilisés
-    - Chaque cadeau disponible est associé à un participant aléatoire
-    - Si il y a plus de participants que de cadeaux, seuls certains participants seront associés
-    - Les associations existantes ne sont jamais modifiées
+    Utilise les hommes (participants) et femmes (gifts) déjà enregistrés en base.
+    
+    Règles métier:
+    - Priorité: associer 1 homme + 1 femme tant que possible
+    - Ensuite: associer les personnes restantes du même genre (F-F ou H-H)
+    - Aucun numéro ne peut apparaître dans plus d'un couple
     
     Returns:
-        JSON: Nouvelles associations créées et total des associations
+        JSON: Timestamp et liste des couples créés avec leur type
     """
     # Créer les associations via le service
     result = association_service.create_random_associations()
     
     # Déterminer le code de statut HTTP
     status_code = 200 if result['success'] else 400
+    
+    return jsonify(result), status_code
+
+
+@associations_bp.route('/api/associate', methods=['POST'])
+@token_required
+def create_gender_associations():
+    """
+    Crée des associations aléatoires entre personnes (hommes et femmes).
+    Version stateless - reçoit les listes directement dans le body.
+    
+    Règles métier:
+    - Chaque numéro représente une personne unique
+    - Les listes sont mélangées aléatoirement avant association
+    - Priorité: associer 1 homme + 1 femme tant que possible
+    - Ensuite: associer les personnes restantes du même genre (F-F ou H-H)
+    - Aucun numéro ne peut apparaître dans plus d'un couple
+    
+    Body JSON attendu:
+    {
+        "femmes": [1, 2, 3, 4],
+        "hommes": [10, 11]
+    }
+    
+    Returns:
+        JSON: Timestamp et liste des couples créés avec leur type
+    """
+    # Récupérer les données JSON
+    data = request.get_json(silent=True)
+    
+    # Appeler le service d'association
+    result = gender_association_service.associate(data)
+    
+    # Déterminer le code de statut HTTP
+    status_code = 200 if result.get('success') else 400
     
     return jsonify(result), status_code
 

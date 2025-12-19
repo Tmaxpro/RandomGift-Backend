@@ -73,8 +73,8 @@ def create_app():
         Page d'accueil de l'API avec liste des endpoints disponibles.
         """
         return jsonify({
-            "message": "API d'association de participants et cadeaux",
-            "version": "1.0.0",
+            "message": "API d'association hommes/femmes",
+            "version": "2.0.0",
             "storage": "SQLite Database",
             "endpoints": {
                 "auth": {
@@ -83,20 +83,21 @@ def create_app():
                     "POST /auth/refresh": "Rafraîchir l'access token avec un refresh token",
                     "GET /auth/me": "Obtenir les informations de l'utilisateur connecté (requiert authentification)"
                 },
-                "participants": {
-                    "POST /participants": "Ajouter un participant (requiert authentification)",
-                    "POST /participants/bulk": "Ajouter plusieurs participants via fichier CSV ou Excel (colonne: participant/name) (requiert authentification)",
-                    "GET /participants": "Lister tous les participants (requiert authentification)",
-                    "DELETE /participants/<participant>": "Supprimer un participant (requiert authentification)"
+                "hommes": {
+                    "POST /participants": "Ajouter un homme (requiert authentification)",
+                    "POST /participants/bulk": "Ajouter plusieurs hommes via fichier CSV ou Excel (requiert authentification)",
+                    "GET /participants": "Lister tous les hommes (requiert authentification)",
+                    "DELETE /participants/<participant>": "Supprimer un homme (requiert authentification)"
                 },
-                "gifts": {
-                    "POST /gifts": "Ajouter un cadeau (requiert authentification)",
-                    "POST /gifts/bulk": "Ajouter plusieurs cadeaux via fichier CSV ou Excel (colonne: gift/cadeau) (requiert authentification)",
-                    "GET /gifts": "Lister tous les cadeaux (requiert authentification)",
-                    "DELETE /gifts/<gift>": "Supprimer un cadeau (requiert authentification)"
+                "femmes": {
+                    "POST /gifts": "Ajouter une femme (numéro) (requiert authentification)",
+                    "POST /gifts/bulk": "Ajouter plusieurs femmes via fichier CSV ou Excel (requiert authentification)",
+                    "GET /gifts": "Lister toutes les femmes (requiert authentification)",
+                    "DELETE /gifts/<gift>": "Supprimer une femme (requiert authentification)"
                 },
                 "associations": {
-                    "POST /associate": "Créer des associations aléatoires (associe tous les cadeaux disponibles à des participants aléatoires) (requiert authentification)",
+                    "POST /associate": "Associer hommes et femmes (H-F prioritaire, puis même genre) (requiert authentification)",
+                    "POST /api/associate": "Associer via JSON direct {femmes: [], hommes: []} (stateless) (requiert authentification)",
                     "GET /associations": "Lister toutes les associations (requiert authentification)",
                     "DELETE /associations/<participant>": "Supprimer une association (requiert authentification)"
                 },
