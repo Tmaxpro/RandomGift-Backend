@@ -64,7 +64,7 @@ def reset_data():
     old_stats = {
         "participants": len(store.participants),
         "gift": len(store.gifts),
-        "associations": len(store.get_couples)
+        "associations": len(store.get_couples())
     }
     
     # Réinitialiser le store
