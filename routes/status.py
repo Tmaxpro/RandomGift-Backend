@@ -89,7 +89,9 @@ def reset_associations():
         JSON: Confirmation de la réinitialisation des associations
     """
     # Compter les associations avant réinitialisation
-    associations_count = store.reset_couples()
+    associations_count = len(store.get_couples())
+
+    store.reset_couples()
     
     return jsonify({
         "success": True,
