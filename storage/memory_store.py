@@ -286,8 +286,8 @@ class DatabaseStore:
     def reset_associations(self):
         """Réinitialise uniquement les associations (les participants et cadeaux sont conservés)."""
         associations_count = Association.query.filter_by(is_archived=False).count()
-        # Archiver toutes les associations
-        Association.query.filter_by(is_archived=False).update({'is_archived': True})
+        # Supprimer toutes les associations non archivées (hard delete pour permettre la réattribution)
+        Association.query.filter_by(is_archived=False).delete()
         db.session.commit()
         return associations_count
     
