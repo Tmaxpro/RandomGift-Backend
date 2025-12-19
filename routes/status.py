@@ -64,7 +64,7 @@ def reset_data():
     old_stats = {
         "participants": len(store.participants),
         "gift": len(store.gifts),
-        "associations": len(store.associations)
+        "associations": len(store.get_couples)
     }
     
     # Réinitialiser le store
@@ -89,7 +89,7 @@ def reset_associations():
         JSON: Confirmation de la réinitialisation des associations
     """
     # Compter les associations avant réinitialisation
-    associations_count = store.reset_associations()
+    associations_count = store.reset_couples()
     
     return jsonify({
         "success": True,
