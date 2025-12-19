@@ -53,8 +53,8 @@ def reset_data():
     Réinitialise toutes les données du système.
     
     Supprime:
-    - Tous les noms
-    - Tous les numéros
+    - Tous les participants
+    - Tous les gifts
     - Toutes les associations
     
     Returns:
@@ -62,8 +62,8 @@ def reset_data():
     """
     # Sauvegarder les statistiques avant réinitialisation
     old_stats = {
-        "names": len(store.names),
-        "numbers": len(store.numbers),
+        "participants": len(store.participants),
+        "gift": len(store.gifts),
         "associations": len(store.associations)
     }
     
