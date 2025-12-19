@@ -226,7 +226,7 @@ def get_participants():
     return jsonify({
         "success": True,
         "total": len(hommes_list),
-        "hommes": hommes_list
+        "participants": hommes_list
     }), 200
 
 

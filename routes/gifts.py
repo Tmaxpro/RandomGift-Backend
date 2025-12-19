@@ -226,7 +226,7 @@ def get_gifts():
     return jsonify({
         "success": True,
         "total": len(femmes_list),
-        "femmes": femmes_list
+        "gifts": femmes_list
     }), 200
 
 
