@@ -38,13 +38,13 @@ def export_csv():
     writer = csv.writer(output)
     
     # Écrire l'en-tête
-    writer.writerow(['Participant', 'Gift', 'Created At'])
+    writer.writerow(['Personne1', 'Personne2', 'Date de création'])
     
     # Écrire les données
     for assoc in associations:
         writer.writerow([
-            assoc.participant,
-            assoc.gift,
+            assoc.personne1,
+            assoc.personne2,
             assoc.created_at.strftime('%Y-%m-%d %H:%M:%S') if assoc.created_at else ''
         ])
     
@@ -110,12 +110,12 @@ def export_pdf():
     elements.append(Spacer(1, 0.3 * inch))
     
     # Données du tableau
-    data = [['Participant', 'Cadeau', 'Date de création']]
+    data = [['Personne1', 'Personne2', 'Date de création']]
     
     for assoc in associations:
         data.append([
-            str(assoc.participant),
-            str(assoc.gift),
+            str(assoc.personne1),
+            str(assoc.personne2),
             assoc.created_at.strftime('%d/%m/%Y %H:%M:%S') if assoc.created_at else 'N/A'
         ])
     
